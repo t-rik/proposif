@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voting Sessions</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f8f9fa;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      text-align: center;
+      color: #003366;
+      margin: 20px 0;
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .content-container {
+      width: 95%;
+      max-width: 1800px;
+      margin: 0 auto;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    #myGrid {
+      width: 100%;
+      min-height: 600px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      background-color: #ffffff;
+      margin-top: 20px;
+    }
+
+    .ag-theme-alpine {
+      --ag-header-foreground-color: white;
+      --ag-header-background-color: #004d99;
+      --ag-header-cell-hover-background-color: #003366;
+      --ag-row-hover-color: #e0f7ff;
+      --ag-border-color: #dddddd;
+    }
+
+    .ag-theme-alpine .ag-header-cell-label {
+      font-weight: 500;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+    }
+
+    .ag-theme-alpine .ag-input-field-input {
+      color: #333 !important;
+    }
+
+    .ag-theme-alpine .ag-header-cell-filter-icon {
+      font-size: 1rem;
+      color: #004d99;
+    }
+
+    .ag-theme-alpine .ag-icon {
+      color: #004d99;
+    }
+
+    .ag-floating-filter-button {
+      display: none !important;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0, 0, 0, 0.75);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background-color: #fff;
+      padding: 30px;
+      border: none;
+      width: 90%;
+      max-width: 800px;
+      max-height: 85vh;
+      overflow-y: auto;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      position: relative;
+      z-index: 1010;
+    }
+
+    .close {
+      color: #555;
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: #000;
+      text-decoration: none;
+    }
+
+    .button {
+      padding: 10px 10px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 1.1rem;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      margin: 10px;
+      display: inline-block;
+      box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+    }
+
+    .button:hover {
+      background-color: #0056b3;
+      transform: translateY(-2px);
+    }
+
+    .button:active {
+      background-color: #004494;
+      transform: translateY(0);
+    }
+
+    .btn-info {
+      height: 50% !important;
+      padding: 4px !important;
+      background-color: #17a2b8;
+      text-decoration: none;
+      line-height: normal;
+    }
+
+    .btn-info:hover {
+      background-color: #138496;
+    }
+
+    .btn-primary {
+      background-color: #007bff;
+    }
+
+    .btn-primary:hover {
+      background-color: #0056b3;
+    }
+
+    .btn-secondary {
+      background-color: #6c757d;
+    }
+
+    .btn-secondary:hover {
+      background-color: #5a6268;
+    }
+    .btncontainer{
+      width: 90%;
+      text-align: right;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Voting Sessions</h1>
+    <div class="btncontainer">
+      <button id="initSessionBtn" class="button btn-primary">Initialize Session</button>
+
+    </div>
+
+    <div id="sessionsGrid" class="ag-theme-alpine" style="height: 500px; width: 100%; margin-top: 20px;"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.noStyle.js"></script>
+  <script>
+    const sessions = <%- JSON.stringify(sessions) %>;
+
+    const columnDefs = [{
+        headerName: "ID",
+        field: "id",
+        sortable: true,
+        filter: true
+      },
+      {
+        headerName: "Init Time",
+        field: "init_time",
+        sortable: true,
+        filter: true
+      },
+      // {
+      //   headerName: "Started",
+      //   field: "started",
+      //   cellRenderer: params => params.value ? 'Yes' : 'No',
+      //   sortable: true,
+      //   filter: true
+      // },
+      {
+        headerName: "Start Time",
+        field: "start_time",
+        sortable: true,
+        filter: true,
+        cellRenderer: params => params.value ? new Date(params.value).toLocaleString() : 'Not started'
+      },
+      // {
+      //   headerName: "Ended",
+      //   field: "ended",
+      //   cellRenderer: params => params.value ? 'Yes' : 'No',
+      //   sortable: true,
+      //   filter: true
+      // },
+      {
+        headerName: "End Time",
+        field: "end_time",
+        sortable: true,
+        filter: true,
+        cellRenderer: params => params.value ? new Date(params.value).toLocaleString() : 'Not ended'
+      },
+      {
+        headerName: "Details",
+        field: "id",
+        cellRenderer: (params) => {
+          return `<a href="/voting-sessions/${params.value}" class="button btn-info">Details</a>`;
+        }
+      }
+    ];
+
+    const gridOptions = {
+      columnDefs: columnDefs,
+      rowData: sessions,
+      defaultColDef: {
+        resizable: true,
+        flex: 1,
+        minWidth: 150
+      },
+      pagination: true,
+      paginationPageSize: 10,
+      domLayout: 'autoHeight'
+    };
+
+    const eGridDiv = document.querySelector('#sessionsGrid');
+    new agGrid.Grid(eGridDiv, gridOptions);
+
+    document.getElementById('initSessionBtn').addEventListener('click', () => {
+      Swal.fire({
+        title: 'Initialize Voting Session',
+        html: `
+                  <form id="initSessionForm">
+                      <div class="form-group">
+                          <label for="votingType">Voting Type</label>
+                          <select id="votingType" name="type" class="form-control">
+                              <option value="jury">Jury Voting Session</option>
+                              <option value="user">User Voting Session</option>
+                          </select>
+                      </div>
+                  </form>
+                `,
+        showCancelButton: true,
+        confirmButtonText: 'Initialize',
+        preConfirm: () => {
+          const votingType = document.getElementById('votingType').value;
+          return {
+            votingType
+          };
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          fetch('/voting-sessions/init', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                type: result.value.votingType
+              })
+            }).then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                Swal.fire('Success', 'Voting session initialized', 'success').then(() => {
+                  location.reload();
+                });
+              } else {
+                Swal.fire('Error', data.details || data.message || data.error, 'error');
+              }
+            });
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>

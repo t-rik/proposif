@@ -1,0 +1,71 @@
+    <h1>Modifier l'Utilisateur</h1>
+    <% if (error_msg != '') { %>
+    <div class="alert alert-error">
+      <%= error_msg %>
+    </div>
+    <% } %>
+    <% if (success_msg != '') { %>
+    <div class="alert alert-success">
+      <%= success_msg %>
+    </div>
+    <% } %>
+    <form action="/users/edit/<%= user.id %>" method="POST">
+      <div class="form-group">
+        <label for="username">Nom d'utilisateur</label>
+        <input type="text" id="username" name="username" value="<%= user.username %>">
+      </div>
+
+      <div class="form-group">
+        <label for="first_name">Prénom</label>
+        <input type="text" id="first_name" name="first_name" value="<%= user.first_name %>">
+      </div>
+
+      <div class="form-group">
+        <label for="last_name">Nom</label>
+        <input type="text" id="last_name" name="last_name" value="<%= user.last_name %>">
+      </div>
+
+      <div class="form-group">
+        <label for="function_id">Fonction</label>
+        <select id="function_id" name="function_id">
+          <% functions.forEach(function(f) { %>
+          <option value="<%= f.id %>" <%= user.function_id === f.id ? 'selected' : '' %>><%= f.name %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Mot de passe (laisser vide pour ne pas changer)</label>
+        <input type="" id="password" name="password">
+      </div>
+
+      <div class="form-group checkbox-group">
+        <div class="checkbox-wrapper-21">
+          <label class="control control--checkbox">
+            admin
+            <input type="checkbox" name="is_admin" <%= user.is_admin ? 'checked' : '' %> />
+            <div class="control__indicator"></div>
+          </label>
+        </div>
+        <div class="checkbox-wrapper-21">
+          <label class="control control--checkbox">
+            jury
+            <input type="checkbox" name="is_jury" <%= user.is_jury ? 'checked' : '' %> />
+            <div class="control__indicator"></div>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="button">Sauvegarder</button>
+        <button type="button" class="button secondary" onclick="confirmDelete()">Supprimer l'utilisateur</button>
+      </div>
+    </form>
+
+    <script>
+      function confirmDelete() {
+        if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur?')) {
+          window.location.href = `/users/delete/<%= user.id %>`;
+        }
+      }
+    </script>

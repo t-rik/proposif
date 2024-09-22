@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vote</title>
+  <link rel="stylesheet" href="/css/detailProposition.css">
+  <script src="/js/detailProposition.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body>
+  <div class="proposition-container">
+    <header class="proposition-header">
+      <h1 class="proposition-title"><%= proposition.objet %></h1>
+    </header>
+
+    <section class="proposition-info">
+      <div class="info-item">
+        <h2 class="info-subtitle">Description de la Situation Actuelle</h2>
+        <p class="info-text"><%= proposition.description_situation_actuelle %></p>
+      </div>
+      <div class="info-item">
+        <h2 class="info-subtitle">Description de l'Amélioration Proposée</h2>
+        <p class="info-text"><%= proposition.description_amelioration_proposee %></p>
+      </div>
+    </section>
+
+    <section class="proposition-status">
+      <h2 class="status-title">Statut</h2>
+      <div class="status <%= proposition.statut %>">
+        <%= proposition.statut === 'soldee' ? 'Soldée' : proposition.statut === 'en cours' ? 'En Cours' : proposition.statut === 'anulee' ? 'Annulée' : 'Non Soldée' %>
+      </div>
+    </section>
+
+    <section class="proposition-impacts">
+      <h2 class="impacts-title">Impacts</h2>
+      <ul>
+        <% if (proposition.impact_economique) { %>
+        <li class="impact-item">💡 Impact économique</li>
+        <% } %>
+        <% if (proposition.impact_technique) { %>
+        <li class="impact-item">🔧 Impact technique</li>
+        <% } %>
+        <% if (proposition.impact_formation) { %>
+        <li class="impact-item">📚 Impact de formation</li>
+        <% } %>
+        <% if (proposition.impact_fonctionnement) { %>
+        <li class="impact-item">⚙️ Impact de fonctionnement</li>
+        <% } %>
+      </ul>
+    </section>
+    <section class="proposition-images"></section>
+    <h2 class="images-title">Images Avant
+    </h2>
+    <div class="image-gallery" data-type="before">
+    </div>
+
+    <h2 class="images-title">Images Après</h2>
+    <div class="image-gallery" data-type="after">
+    </div>
+    </section>
+    <div class="grading-section">
+      <h2>Rate this Proposition</h2>
+      <form id="gradeForm" action="/voting-sessions/jury/proposition/<%= proposition.id %>/vote" method="POST" class="grade-form">
+        <div class="radio-group">
+          <% for (let i = 1; i <= 5; i++) { %>
+          <label class="grade-label">
+            <input type="radio" name="grade" value="<%= i %>" <%= proposition.user_vote == i ? 'checked' : '' %> required>
+            <span class="custom-radio"><%= i %></span>
+          </label>
+          <% } %>
+        </div>
+        <button type="submit" class="submit-button">Submit Grade</button>
+      </form>
+    </div>
+
+    <div class="navigation-buttons">
+      <% if (proposition.id > firstId) { %>
+      <form action="/voting-sessions/jury/vote/previous" method="get" class="nav-form">
+        <input type="hidden" name="id" value="<%= proposition.id %>">
+        <button type="submit" class="nav-button">Previous</button>
+      </form>
+      <% } %>
+
+      <% if (proposition.id < lastId) { %>
+      <form action="/voting-sessions/jury/vote/next" method="get" class="nav-form">
+        <input type="hidden" name="id" value="<%= proposition.id %>">
+        <button type="submit" class="nav-button">Next</button>
+      </form>
+      <% } %>
+    </div>
+    <div id="imageModal" class="modal">
+      <span class="modal-close" onclick="closeModal()">&times;</span>
+      <img class="modal-content" id="modalImage">
+      <a id="downloadLink" class="btn-download" download>Télécharger</a>
+    </div>
+    <script>
+      document.getElementById('gradeForm').onsubmit = function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(this);
+        fetch(this.action, {
+            method: this.method,
+            body: formData,
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Erreur',
+                text: data.error,
+              });
+            } else {
+              Swal.fire({
+                icon: 'success',
+                title: 'Succès',
+                text: 'Votre évaluation a été soumise avec succès.',
+              })
+            }
+          })
+          .catch(error => {
+            console.error('Erreur lors de l\'envoi de la note:', error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Erreur',
+              text: 'Une erreur est survenue. Veuillez réessayer.',
+            });
+          });
+      };
+
+      function refreshGallery(type) {
+        const propositionId = '<%= proposition.id %>';
+        const last = '<%= lastId %>';
+        const first = '<%= firstId %>'
+        console.log(first + ' ' + propositionId + ' ' + last);
+        
+
+        fetch(`/images/proposition/${propositionId}?type=${type}`)
+          .then(response => response.json())
+          .then(data => {
+            console.log(data);
+
+            if (data.success) {
+              const galleryContainer = document.querySelector(`.image-gallery[data-type="${type}"]`);
+              if (data.images.length > 0) {
+                galleryContainer.innerHTML = data.images.map(image => `
+      <div class="image-wrapper" onclick="openModal('/images/${propositionId}/${type}/${image.filename}')">
+        <img src="/images/${propositionId}/${type}/${image.filename}" alt="Image ${type === 'before' ? 'Avant' : 'Après'}" class="image-thumbnail">
+      </div>
+      `).join('');
+              } else {
+                galleryContainer.innerHTML = `<p class="no-images-message">Aucune image "${type === 'before' ? 'Avant' : 'Après'}" disponible.</p>`;
+              }
+            } else {
+              console.error('Error fetching images:', data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error updating image gallery:', error);
+          });
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        refreshGallery('before');
+        refreshGallery('after');
+      });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,31 @@
+<div class="edit-proposition-form">
+  <h1>Edit Proposition: <%= proposition.objet %></h1>
+  <form action="/propositions/update/<%= proposition.id %>" method="POST">
+    <div class="form-group">
+      <label for="objet">Objet</label>
+      <input type="text" id="objet" name="objet" value="<%= proposition.objet %>" required>
+    </div>
+
+    <div class="form-group">
+      <label for="description_situation_actuelle">Description de la situation actuelle</label>
+      <textarea id="description_situation_actuelle" name="description_situation_actuelle" required><%= proposition.description_situation_actuelle %></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="description_amelioration_proposee">Description de l'amélioration proposée</label>
+      <textarea id="description_amelioration_proposee" name="description_amelioration_proposee" required><%= proposition.description_amelioration_proposee %></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="statut">Statut</label>
+      <select id="statut" name="statut">
+        <option value="non soldee" <%= proposition.statut === 'non soldee' ? 'selected' : '' %>>Non Solvée</option>
+        <option value="en cours" <%= proposition.statut === 'en cours' ? 'selected' : '' %>>En Cours</option>
+        <option value="soldee" <%= proposition.statut === 'soldee' ? 'selected' : '' %>>Solvée</option>
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+  </form>
+</div>
+

@@ -1,0 +1,56 @@
+<nav class="navbar">
+  <div class="nav">
+
+    <div class="navbar-header">
+      <button class="navbar-toggler" data-toggle="open-navbar1">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <a href="#">
+        <img src="/images/logo.jpg" alt="Logo">
+      </a>
+    </div>
+
+    <div class="navbar-menu" id="open-navbar1">
+      <ul class="navbar-nav">
+
+        <!-- Show only to Admin -->
+        <li class="navbar-dropdown">
+          <a href="#" class="dropdown-toggler" data-dropdown="my-dropdown-id">
+            Propositions <i class="fa fa-angle-down"></i>
+          </a>
+          <ul class="dropdown" id="my-dropdown-id">
+            <li><a href="/propositions/mes-propositions">Mes propositions</a></li>
+            <li class="separator"></li>
+            <li><a href="/propositions/add">Nouvelle proposition</a></li>
+            <% if (isAdmin) { %>
+            <li class="separator"></li>
+            <li><a href="/propositions">Toutes les propositions</a></li>
+            <% } %>
+
+          </ul>
+        </li>
+
+        <li class="navbar-dropdown">
+          <a href="#" class="dropdown-toggler" data-dropdown="blog">
+            Utilisateurs <i class="fa fa-angle-down"></i>
+          </a>
+          <ul class="dropdown" id="blog">
+            <li><a href="/users">Liste des utilisateurs</a></li>
+            <li class="separator"></li>
+            <li><a href="/users/add">Ajouter utilisateur</a></li>
+          </ul>
+        </li>
+
+
+        <% if (isAdmin) { %>
+        <li><a href="/voting-sessions">Vote</a></li>
+        <% } %>
+
+        <li><a href="/auth/logout">Déconnexion</a></li>
+
+      </ul>
+    </div>
+  </div>
+</nav>

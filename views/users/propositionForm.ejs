@@ -1,0 +1,102 @@
+<form id="upload-form" method="post">
+  <h1>Soumettre une Proposition</h1>
+  <label for="object">Objet :</label>
+  <input type="text" id="object" name="objet" placeholder="Entrez les détails de l'objet" required>
+
+  <label for="description1">Description de la situation actuelle :</label>
+  <textarea id="description1" name="description_situation_actuelle" placeholder="Entrez la description ici" required></textarea>
+
+  <label for="description2">Description de l'amélioration proposée :</label>
+  <textarea id="description2" name="description_amelioration_proposee" placeholder="Entrez la description ici" required></textarea>
+
+  <label>Impact :</label>
+  <div class="checkbox-group">
+    <div class="checkbox-column">
+      <label><input type="checkbox" name="impact_economique" value="1"> Économique</label>
+      <label><input type="checkbox" name="impact_technique" value="1"> Technique</label>
+    </div>
+    <div class="checkbox-column">
+      <label><input type="checkbox" name="impact_formation" value="1"> Formation</label>
+      <label><input type="checkbox" name="impact_fonctionnement" value="1"> Fonctionnement</label>
+    </div>
+  </div>
+
+  <label>Statut :</label>
+  <div class="mydict">
+    <div>
+      <label>
+        <input type="radio" name="statut" value="non soldee" checked>
+        <span>Non Soldée</span>
+      </label>
+      <label>
+        <input type="radio" name="statut" value="en cours">
+        <span>En Cours</span>
+      </label>
+      <label>
+        <input type="radio" name="statut" value="soldee">
+        <span>Soldée</span>
+      </label>
+    </div>
+  </div>
+
+  <button type="submit">Soumettre</button>
+</form>
+<div id="error-message" style="color: red;"></div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+  const form = document.getElementById('upload-form');
+  const errorMessageContainer = document.getElementById('error-message');
+  form.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') event.preventDefault();
+  });
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    try {
+      const response = await fetch('/propositions/add', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      console.log(result);
+
+      if (response.ok) {
+        Swal.fire({
+          title: 'Proposition ajoutée!',
+          icon: 'success',
+          showCancelButton: true,
+          confirmButtonText: 'Ajouter des images',
+          cancelButtonText: 'Pas maintenant',
+          allowOutsideClick: false,
+          preConfirm: () => {
+            window.location.href = '/propositions/proposition/' + result.propositionId + '#before-gallery';
+          }
+        }).then((result) => {
+          if (result.dismiss === Swal.DismissReason.cancel) {
+            window.location.href = '/propositions/mes-propositions';
+          }
+        });
+      } else {
+        Swal.fire({
+          title: 'Erreur!',
+          icon: 'error',
+          confirmButtonText: 'Ok',
+          allowOutsideClick: false
+        });
+      }
+    } catch (error) {
+      Swal.fire({
+        title: 'Erreur inconnue!',
+        text: 'Une erreur inattendue s\'est produite. Veuillez réessayer plus tard ou contacter le support.',
+        icon: 'error',
+        timer: 1000,
+        showConfirmButton: false,
+        allowOutsideClick: false
+      }).then(function() {
+        window.location.href = '/';
+      });
+    }
+  });
+</script>

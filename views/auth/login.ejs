@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="/css/login.css">
+</head>
+<body>
+    <img src="/images/logo.jpg" alt="Logo" class="logo">
+
+    <% if (error_msg != '') { %>
+        <p class="error"><%= error_msg %></p>
+    <% } %>
+
+    <form action="login" method="POST" class="form">
+        <label>
+            <input required placeholder=" " type="text" name="username" class="input">
+            <span>Utilisateur</span>
+        </label>
+            
+        <label>
+            <input required placeholder=" " type="password" name="password" class="input">
+            <span>Mot de passe</span>
+        </label>
+        <button type="submit" class="submit">Se connecter</button>
+    </form>
+</body>
+</html>

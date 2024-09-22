@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proposition</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.2/min/dropzone.min.css">
+</head>
+
+<body>
+
+  <h1>Proposition: <%= proposition.objet %></h1>
+  <p><strong>Description Actuelle:</strong> <%= proposition.description_situation_actuelle %></p>
+  <p><strong>Amélioration Proposée:</strong> <%= proposition.description_amelioration_proposee %></p>
+
+  <h3>Upload Images</h3>
+
+  <form action="/propositions/upload/<%= proposition.id %>?type=before" class="dropzone" id="beforeDropzone" enctype="multipart/form-data">
+    <div class="dz-message">Drop 'before' images here or click to upload</div>
+  </form>
+
+  <form action="/propositions/upload/<%= proposition.id %>?type=after" class="dropzone" id="afterDropzone" enctype="multipart/form-data">
+    <div class="dz-message">Drop 'after' images here or click to upload</div>
+  </form>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.2/min/dropzone.min.js"></script>
+
+  <script>
+    Dropzone.options.beforeDropzone = {
+      paramName: "beforeImages",
+      maxFiles: 3 - <%= beforeImages.length %>,
+      acceptedFiles: "image/*",
+      maxFilesize: 5,
+      dictDefaultMessage: "Upload up to " + (3 - <%= beforeImages.length %>) + " 'before' images",
+      addRemoveLinks: true,
+      dictRemoveFile: "Remove",
+      init: function() {
+        let myDropzone = this;
+
+        this.on("success", function(file, response) {
+          file.id = response.uploadedFiles[0].fileId;
+          file.size = response.uploadedFiles[0].size;
+        });
+
+        this.on("removedfile", function(file) {
+          if (file.id) {
+            fetch(`/propositions/images/delete/${file.id}`, {
+                method: 'DELETE'
+              }).then(response => response.json())
+              .then(result => {
+                if (!result.success) {
+                  alert(result.message);
+                }
+              }).catch(error => alert('Error deleting file.'));
+          }
+        });
+
+        let beforeImages = <%- JSON.stringify(beforeImages) %>;
+        beforeImages.forEach(file => {
+          let mockFile = {
+            name: file.filename,
+            size: file.file_size || 12345,
+            id: file.id
+          };
+          this.displayExistingFile(mockFile, `/propositions/images/<%= proposition.id %>/before/${file.filename}`);
+          mockFile.previewElement.classList.add("dz-complete");
+        });
+        
+      }
+    };
+
+    Dropzone.options.afterDropzone = {
+      paramName: "afterImages",
+      maxFiles: 3 - <%= afterImages.length %>,
+      acceptedFiles: "image/*",
+      maxFilesize: 5,
+      dictDefaultMessage: "Upload up to " + (3 - <%= afterImages.length %>) + " 'after' images",
+      addRemoveLinks: true,
+      dictRemoveFile: "Remove",
+      init: function() {
+        let myDropzone = this;
+
+        this.on("success", function(file, response) {
+          file.id = response.uploadedFiles[0].fileId;
+          file.size = response.uploadedFiles[0].size;
+        });
+
+        this.on("removedfile", function(file) {
+          if (file.id) {
+            fetch(`/propositions/images/delete/${file.id}`, {
+                method: 'DELETE'
+              }).then(response => response.json())
+              .then(result => {
+                if (!result.success) {
+                  alert(result.message);
+                }
+              }).catch(error => alert('Error deleting file.'));
+          }
+        });
+
+        let afterImages = <%- JSON.stringify(afterImages) %>;
+        afterImages.forEach(file => {
+
+          let mockFile = {
+            name: file.filename,
+            size: file.file_size || 12345,
+            id: file.id
+          };
+          this.displayExistingFile(mockFile, `/propositions/images/<%= proposition.id %>/after/${file.filename}`);
+          mockFile.previewElement.classList.add("dz-complete");
+        });
+      }
+    };
+  </script>
+</body>
+</html>

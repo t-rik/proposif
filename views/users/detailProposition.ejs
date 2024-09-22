@@ -1,0 +1,369 @@
+<div class="proposition-container">
+  <header class="proposition-header">
+    <h1 class="proposition-title"><%= proposition.objet %></h1>
+          <% if (!proposition.locked && proposition.user_id == userId) { %>
+    <a href="/propositions/proposition/edit/<%= proposition.id %>" class="btn-edit">Modifier</a>
+    <% } %>
+  </header>
+
+  <section class="proposition-info">
+    <div class="info-item">
+      <h2 class="info-subtitle">Description de la Situation Actuelle</h2>
+      <p class="info-text"><%= proposition.description_situation_actuelle %></p>
+    </div>
+    <div class="info-item">
+      <h2 class="info-subtitle">Description de l'Amélioration Proposée</h2>
+      <p class="info-text"><%= proposition.description_amelioration_proposee %></p>
+    </div>
+  </section>
+
+  <section class="proposition-status">
+    <h2 class="status-title">Statut</h2>
+    <div class="status <%= proposition.statut %>">
+      <%= proposition.statut === 'soldee' ? 'Soldée' : proposition.statut === 'en cours' ? 'En Cours' : proposition.statut === 'anulee' ? 'Annulée' : 'Non Soldée' %>
+    </div>
+  </section>
+
+  <section class="proposition-impacts">
+    <h2 class="impacts-title">Impacts</h2>
+    <ul>
+      <% if (proposition.impact_economique) { %>
+      <li class="impact-item">💡 Impact économique</li>
+      <% } %>
+      <% if (proposition.impact_technique) { %>
+      <li class="impact-item">🔧 Impact technique</li>
+      <% } %>
+      <% if (proposition.impact_formation) { %>
+      <li class="impact-item">📚 Impact de formation</li>
+      <% } %>
+      <% if (proposition.impact_fonctionnement) { %>
+      <li class="impact-item">⚙️ Impact de fonctionnement</li>
+      <% } %>
+    </ul>
+  </section>
+
+  <section class="proposition-images">
+    <h2 class="images-title">Images Avant
+      <% if (!proposition.locked && proposition.user_id == userId) { %>
+      <button class="btn-edit" onclick="openForm('before')">Gérer images</button>
+      <% } %>
+    </h2>
+    <div class="image-gallery" data-type="before">
+    </div>
+
+    <h2 class="images-title">Images Après
+      <% if (proposition.statut == 'soldee' && !proposition.locked && proposition.user_id == userId) { %><button class="btn-edit" onclick="openForm('after')">Gérer images</button><%}%>
+    </h2>
+    <% if (proposition.statut !== 'soldee') { %>
+      <p class="no-images-message">Les images "Après" ne peuvent être ajoutées que si la proposition est "Soldée".</p>
+      <% } else{ %>
+      <div class="image-gallery" data-type="after">
+      </div>
+      <% } %>
+  </section>
+
+  <div id="popupFormBefore" class="popup-form">
+    <div class="popup-content">
+      <span class="popup-close" onclick="closeForm('before')">&times;</span>
+      <h2>Télécharger les images 'Avant'</h2>
+      <form action="/images/upload/<%= proposition.id %>?type=before" class="dropzone" id="beforeDropzone" enctype="multipart/form-data">
+        <div class="add-wrapper">
+          <img class="add-button" id="add1" src="/images/add-photo.jpg" alt="Dynamic Image" style="width: 100px">
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="popupFormAfter" class="popup-form">
+    <div class="popup-content">
+      <span class="popup-close" onclick="closeForm('after')">&times;</span>
+      <h2>Télécharger les images 'Après'</h2>
+      <form action="/images/upload/<%= proposition.id %>?type=after" class="dropzone" id="afterDropzone" enctype="multipart/form-data">
+        <div class="add-wrapper">
+          <img class="add-button" id="add2" src="/images/add-photo.jpg" alt="Dynamic Image" style="width: 100px">
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="imageModal" class="modal">
+    <span class="modal-close" onclick="closeModal()">&times;</span>
+    <img class="modal-content" id="modalImage">
+    <a id="downloadLink" class="btn-download" download>Télécharger</a>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.2/min/dropzone.min.js"></script>
+  <script>
+    Dropzone.options.beforeDropzone = {
+      paramName: "beforeImages",
+      maxFiles: 3 - <%= beforeImages.length %>,
+      acceptedFiles: "image/*",
+      maxFilesize: 5,
+      thumbnailWidth: "250",
+      thumbnailHeight: "250",
+      addRemoveLinks: true,
+      clickable: "#add1",
+      dictDefaultMessage: '',
+      dictCancelUpload: 'Annuler',
+      dictRemoveFile: '<i class="fas fa-trash-alt"></i>',
+      init: function() {
+        let myDropzone = this;
+        let currentFilesCount = <%= beforeImages.length %>;
+
+        function updateMaxFiles() {
+          myDropzone.options.maxFiles = 3 - currentFilesCount;
+        }
+
+        this.on("success", function(file, response) {
+          file.id = response.uploadedFiles[0].fileId;
+          file.size = response.uploadedFiles[0].size;
+          refreshGallery('before');
+        });
+        this.on("error", function(file, response) {
+          var deleteButton = file.previewElement.querySelector(".dz-remove");
+          if (deleteButton) {
+            deleteButton.style.display = "none";
+          }
+
+          var errorMark = file.previewElement;
+          if (errorMark) {
+            errorMark.addEventListener("click", function() {
+              deleteButton.click();
+            }); 
+          }
+          setTimeout(function() {
+            const errorMarks = document.querySelectorAll('.dz-error-mark');
+
+            errorMarks.forEach(function(errorMark) {
+              console.log('added');
+              errorMark.addEventListener('click', function() {
+                console.log('Default error mark clicked for file:', file.name);
+              });
+            });
+          }, 0);
+        })
+        this.on("removedfile", function(file) {
+          if (file.id) {
+            fetch(`/images/delete/${file.id}`, {
+                method: 'DELETE'
+              })
+              .then(response => response.json())
+              .then(result => {
+                if (!result.success) {
+                  let mockFile = {
+                    name: file.name,
+                    size: file.size,
+                    id: file.id
+                  };
+                  this.displayExistingFile(mockFile, `/images/<%= proposition.id %>/before/${file.name}`);
+                  mockFile.previewElement.classList.add("dz-complete");
+                } else {
+                  currentFilesCount--;
+                  updateMaxFiles();
+                  refreshGallery('before');
+                }
+              }).catch(error => {
+                let mockFile = {
+                  name: file.name,
+                  size: file.size,
+                  id: file.id
+                };
+                this.displayExistingFile(mockFile, `/images/<%= proposition.id %>/before/${file.name}`);
+                mockFile.previewElement.classList.add("dz-complete");
+              });
+          }
+        });
+
+        let beforeImages = <%- JSON.stringify(beforeImages) %>;
+        beforeImages.forEach(file => {
+          let mockFile = {
+            name: file.filename,
+            size: file.file_size,
+            id: file.id
+          };
+          this.displayExistingFile(mockFile, `/images/<%= proposition.id %>/before/${file.filename}`);
+          mockFile.previewElement.classList.add("dz-complete");
+          const removeButton = mockFile.previewElement.querySelector(".dz-remove");
+          removeButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+        });
+      }
+    };
+
+    Dropzone.options.afterDropzone = {
+      paramName: "afterImages",
+      maxFiles: 3 - <%= afterImages.length %>,
+      acceptedFiles: "image/*",
+      thumbnailWidth: "250",
+      thumbnailHeight: "250",
+      dictCancelUpload: 'Annuler',
+      maxFilesize: 5,
+      addRemoveLinks: true,
+      clickable: "#add2",
+      dictDefaultMessage: '',
+      dictRemoveFile: '<i class="fas fa-trash-alt"></i>',
+      init: function() {
+        let myDropzone = this;
+        let currentFilesCount = <%= afterImages.length %>;
+
+        function updateMaxFiles() {
+          myDropzone.options.maxFiles = 3 - currentFilesCount;
+        }
+        this.on("error", function(file, response) {
+          var deleteButton = file.previewElement.querySelector(".dz-remove");
+          if (deleteButton) {
+            deleteButton.style.display = "none";
+          }
+
+          var errorMark = file.previewElement;
+          if (errorMark) {
+            errorMark.addEventListener("click", function() {              
+              deleteButton.click();
+            });
+          }
+        })
+
+        this.on("success", function(file, response) {
+          file.id = response.uploadedFiles[0].fileId;
+          file.size = response.uploadedFiles[0].size;
+          refreshGallery('after');
+        });
+
+        this.on("removedfile", function(file) {
+          if (file.id) {
+            fetch(`/images/delete/${file.id}`, {
+                method: 'DELETE'
+              })
+              .then(response => response.json())
+              .then(result => {
+                if (!result.success) {
+                  let mockFile = {
+                    name: file.name,
+                    size: file.size,
+                    id: file.id
+                  };
+                  this.displayExistingFile(mockFile, `/images/<%= proposition.id %>/after/${file.name}`);
+                  mockFile.previewElement.classList.add("dz-complete");
+                } else {
+                  currentFilesCount--;
+                  updateMaxFiles();
+                  refreshGallery('after');
+                }
+              }).catch(error => {
+                let mockFile = {
+                  name: file.name,
+                  size: file.size,
+                  id: file.id
+                };
+                this.displayExistingFile(mockFile, `/images/<%= proposition.id %>/after/${file.name}`);
+                mockFile.previewElement.classList.add("dz-complete");
+              });
+          }
+        });
+
+        let afterImages = <%- JSON.stringify(afterImages) %>;
+        afterImages.forEach(file => {
+          let mockFile = {
+            name: file.filename,
+            size: file.file_size,
+            id: file.id
+          };
+          this.displayExistingFile(mockFile, `/images/<%= proposition.id %>/after/${file.filename}`);
+          mockFile.previewElement.classList.add("dz-complete");
+          const removeButton = mockFile.previewElement.querySelector(".dz-remove");
+          removeButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+        });
+      }
+    };
+
+    function openForm(type) {
+      if (type === 'before') {
+        document.getElementById('popupFormBefore').style.display = 'flex';
+      } else if (type === 'after') {
+        document.getElementById('popupFormAfter').style.display = 'flex';
+      }
+    }
+
+    function closeForm(type) {
+      if (type === 'before') {
+        document.getElementById('popupFormBefore').style.display = 'none';
+      } else if (type === 'after') {
+        document.getElementById('popupFormAfter').style.display = 'none';
+      }
+    }
+
+    const forms = document.querySelectorAll('.dropzone');
+    let observing = true;
+
+    function updateImages() {
+      if (!observing) return;
+      observing = false;
+      forms.forEach(form => {
+        const childCount = form.children.length - 1;
+        const image = form.querySelector('.add-wrapper');
+        if (childCount < 4) {
+          form.appendChild(image);
+          image.style.display = 'flex';
+        } else {
+          image.style.display = 'none';
+        }
+      });
+
+      setTimeout(() => {
+        observing = true;
+      })
+    }
+
+    forms.forEach(form => {
+      const observer = new MutationObserver(updateImages);
+      observer.observe(form, {
+        childList: true
+      });
+    });
+
+    function refreshGallery(type) {
+      const propositionId = '<%= proposition.id %>';
+      fetch(`/images/proposition/${propositionId}?type=${type}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const galleryContainer = document.querySelector(`.image-gallery[data-type="${type}"]`);
+            if (data.images.length > 0) {
+              galleryContainer.innerHTML = data.images.map(image => `
+    <div class="image-wrapper" onclick="openModal('/images/${propositionId}/${type}/${image.filename}')">
+      <img src="/images/${propositionId}/${type}/${image.filename}" alt="Image ${type === 'before' ? 'Avant' : 'Après'}" class="image-thumbnail">
+    </div>
+    `).join('');
+            } else {
+              galleryContainer.innerHTML = `<p class="no-images-message">Aucune image "${type === 'before' ? 'Avant' : 'Après'}" disponible.</p>`;
+            }
+          } else {
+            console.error('Error fetching images:', data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error updating image gallery:', error);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      refreshGallery('before');
+      if ('<%= proposition.statut %>' === 'soldee') {
+        refreshGallery('after');
+      }
+      const hash = window.location.hash;
+
+      if (hash === '#before-gallery') {
+        const beforeGallery = document.querySelector('.proposition-images .image-gallery[data-type="before"]');
+        if (beforeGallery) {
+          beforeGallery.scrollIntoView({
+            behavior: 'smooth'
+          });
+        }
+        history.replaceState(null, '', window.location.pathname);
+
+        openForm('before');
+      }
+      updateImages();
+    });
+  </script>
+</div>
