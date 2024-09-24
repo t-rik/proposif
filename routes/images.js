@@ -103,9 +103,7 @@ router.get('/proposition/:id', async (req, res) => {
         const [images] = await db.query(
             `SELECT * FROM images WHERE proposition_id = ? AND type = ?`,
             [propositionId, imageType]
-        );
-        console.log('test');
-        
+        );        
         res.json({ success: true, images });
     } catch (error) {
         console.error(`Error fetching images: ${error.message}`);
