@@ -8,7 +8,6 @@ const fs = require('fs');
 const multer = require('multer');
 
 
-// Route for all propositions (Admin View)
 router.get('/', async (req, res) => {
   try {
     const [results] = await db.query('SELECT * FROM propositions');
@@ -19,7 +18,7 @@ router.get('/', async (req, res) => {
       isJury: req.session.isJury,
       title: 'Propositions',
       propositions: results,
-      hasPropositions: results.length > 0, // Check if there are propositions
+      hasPropositions: results.length > 0,
       css: [],
       js: [],
       view: '../admin/propositions/list'
@@ -30,7 +29,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Route for user's propositions (User View)
 router.get('/mes-propositions', async (req, res) => {
   try {
     const [results] = await db.query('SELECT * FROM propositions WHERE user_id = ?', [req.session.userId]);
@@ -41,7 +39,7 @@ router.get('/mes-propositions', async (req, res) => {
       isJury: req.session.isJury,
       title: 'Mes Propositions',
       propositions: results,
-      hasPropositions: results.length > 0, // Check if there are propositions
+      hasPropositions: results.length > 0,
       css: [],
       js: [],
       view: '../users/mespropositions'

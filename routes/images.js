@@ -17,6 +17,7 @@ router.get('/:propositionId/:type/:filename', (req, res) => {
         res.status(404).json({ success: false, message: 'File not found.' });
     }
 });
+
 router.post('/upload/:propositionId', (req, res) => {
     upload.fields([
         { name: 'beforeImages', maxCount: 1 },
@@ -30,12 +31,11 @@ router.post('/upload/:propositionId', (req, res) => {
             }
             return res.status(400).json({ error: 'Erreur du serveur lors du téléchargement du fichier.' });
         }
-        // Handle custom errors thrown in storage/fileFilter
+
         else if (err) {
-            return res.status(400).json({ error: err.message }); // Pass the error message directly from Multer
+            return res.status(400).json({ error: err.message });
         }
 
-        // Check if no files were uploaded
         if (!req.files.beforeImages && !req.files.afterImages) {
             return res.status(400).json({ error: 'Aucune image n\'a été téléchargée.' });
         }
@@ -43,7 +43,6 @@ router.post('/upload/:propositionId', (req, res) => {
         try {
             const uploadedFiles = [];
 
-            // Save 'beforeImages' to the database
             if (req.files.beforeImages) {
                 for (const file of req.files.beforeImages) {
                     const [result] = await db.query(
@@ -54,7 +53,6 @@ router.post('/upload/:propositionId', (req, res) => {
                 }
             }
 
-            // Save 'afterImages' to the database
             if (req.files.afterImages) {
                 for (const file of req.files.afterImages) {
                     const [result] = await db.query(
@@ -73,7 +71,6 @@ router.post('/upload/:propositionId', (req, res) => {
         }
     });
 });
-
 
 router.delete('/delete/:id', async (req, res) => {
     const imageId = req.params.id;
@@ -107,7 +104,8 @@ router.get('/proposition/:id', async (req, res) => {
             `SELECT * FROM images WHERE proposition_id = ? AND type = ?`,
             [propositionId, imageType]
         );
-
+        console.log('test');
+        
         res.json({ success: true, images });
     } catch (error) {
         console.error(`Error fetching images: ${error.message}`);

@@ -67,7 +67,7 @@ const isJury = require('./middleware/checkUserJury')
 
 app.use('/propositions', isAuthenticated, isJury,propositionRoutes);
 app.use('/voting-sessions', isAuthenticated,votingSessionRoutes);
-app.use('/images', isAuthenticated, isJury, imageRoutes);
+app.use('/images', isAuthenticated, imageRoutes);
 app.use('/users', isAuthenticated, isJury, userRoutes);
 app.use('/functions', isAuthenticated, isJury,fonctionsRoutes);
 app.use('/auth', authRoutes);

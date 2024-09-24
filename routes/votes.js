@@ -112,59 +112,6 @@ router.post('/:sessionId/start', async (req, res) => {
     }
 });
 
-router.post('/:sessionId/vote', async (req, res) => {
-    const { sessionId } = req.params;
-    const { propositionId, grade } = req.body;
-    const userId = req.session.userId;
-
-    if (!userId) {
-        return res.status(403).json({ error: 'Unauthorized' });
-    }
-
-    if (grade < 1 || grade > 5) {
-        return res.status(400).json({ error: 'Invalid grade, must be between 1 and 5' });
-    }
-
-    try {
-        const [session] = await db.query('SELECT * FROM voting_sessions WHERE id = ? AND is_active = 1', [sessionId]);
-
-        if (session.length === 0) {
-            return res.status(404).json({ message: 'No active voting session found' });
-        }
-
-        const [proposition] = await db.query('SELECT * FROM propositions WHERE id = ? AND can_be_voted = 1', [propositionId]);
-
-        if (proposition.length === 0) {
-            return res.status(404).json({ message: 'Proposition not available for voting' });
-        }
-
-        const [existingVote] = await db.query(
-            'SELECT * FROM votes WHERE user_id = ? AND proposition_id = ? AND session_id = ?',
-            [userId, propositionId, sessionId]
-        );
-
-        if (existingVote.length > 0) {
-            await db.query('UPDATE votes SET grade = ? WHERE user_id = ? AND proposition_id = ? AND session_id = ?', [
-                grade,
-                userId,
-                propositionId,
-                sessionId,
-            ]);
-        } else {
-            await db.query('INSERT INTO votes (user_id, proposition_id, session_id, grade) VALUES (?, ?, ?, ?)', [
-                userId,
-                propositionId,
-                sessionId,
-                grade,
-            ]);
-        }
-
-        res.json({ message: 'Vote submitted' });
-    } catch (error) {
-        res.status(500).json({ error: 'Database error', details: error });
-    }
-});
-
 router.post('/:sessionId/end', async (req, res) => {
     const { sessionId } = req.params;
 
@@ -200,76 +147,10 @@ router.post('/:sessionId/end', async (req, res) => {
     }
 });
 
-router.post('/:sessionId/start-user-vote', async (req, res) => {
-    const { sessionId } = req.params;
-
+router.post('/exclude/:propositionId', async (req, res) => {
     if (!req.session.isAdmin) {
         return res.status(403).json({ error: 'Unauthorized' });
     }
-
-    try {
-        const [sessionResult] = await db.query('UPDATE voting_sessions SET is_active = 1 WHERE id = ?', [sessionId]);
-
-        if (sessionResult.affectedRows === 0) {
-            return res.status(404).json({ message: 'Voting session not found' });
-        }
-
-        await db.query('UPDATE propositions SET can_be_voted = 1 WHERE validated = 1');
-
-        res.json({ message: 'User voting session started on validated propositions' });
-    } catch (error) {
-        res.status(500).json({ error: 'Database error', details: error });
-    }
-});
-
-router.post('/:sessionId/user-vote', async (req, res) => {
-    const { sessionId } = req.params;
-    const { propositionId, grade } = req.body;
-    const userId = req.session.userId;
-
-    if (!userId) {
-        return res.status(403).json({ error: 'Unauthorized' });
-    }
-
-    if (grade < 1 || grade > 5) {
-        return res.status(400).json({ error: 'Invalid grade, must be between 1 and 5' });
-    }
-
-    try {
-        const [proposition] = await db.query('SELECT * FROM propositions WHERE id = ? AND can_be_voted = 1 AND validated = 1', [propositionId]);
-
-        if (proposition.length === 0) {
-            return res.status(404).json({ message: 'Proposition not available for user voting' });
-        }
-
-        const [existingVote] = await db.query(
-            'SELECT * FROM user_votes WHERE user_id = ? AND proposition_id = ? AND session_id = ?',
-            [userId, propositionId, sessionId]
-        );
-
-        if (existingVote.length > 0) {
-            await db.query('UPDATE user_votes SET grade = ? WHERE user_id = ? AND proposition_id = ? AND session_id = ?', [
-                grade,
-                userId,
-                propositionId,
-                sessionId,
-            ]);
-        } else {
-            await db.query('INSERT INTO user_votes (user_id, proposition_id, session_id, grade) VALUES (?, ?, ?, ?)', [
-                userId,
-                propositionId,
-                sessionId,
-                grade,
-            ]);
-        }
-
-        res.json({ message: 'User vote submitted' });
-    } catch (error) {
-        res.status(500).json({ error: 'Database error', details: error });
-    }
-});
-
-router.post('/exclude/:propositionId', async (req, res) => {
     try {
         await db.query('UPDATE propositions SET is_excluded = 1 WHERE id = ?', [req.params.propositionId]);
         res.json({ success: true });
@@ -279,6 +160,9 @@ router.post('/exclude/:propositionId', async (req, res) => {
 });
 
 router.post('/include/:propositionId', async (req, res) => {
+    if (!req.session.isAdmin) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
     try {
         await db.query('UPDATE propositions SET is_excluded = 0 WHERE id = ?', [req.params.propositionId]);
         res.json({ success: true });
@@ -288,6 +172,9 @@ router.post('/include/:propositionId', async (req, res) => {
 });
 
 router.get('/', async (req, res) => {
+    if (!req.session.isAdmin) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
     const sessions = await db.query('SELECT * FROM voting_sessions');
 
     res.render('voting-sessions/list', {
@@ -344,7 +231,6 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-
 router.delete('/:sessionId', async (req, res) => {
     if (!req.session.isAdmin) {
         return res.status(403).json({ error: 'Unauthorized' });
@@ -359,14 +245,6 @@ router.delete('/:sessionId', async (req, res) => {
         if (lastSession.length === 0 || lastSession[0].id !== session[0].id) {
             return res.status(400).json({ error: 'error', message: 'Only the last created voting session can be deleted' });
         }
-        await db.query('UPDATE propositions SET is_excluded = 1 WHERE id IN (SELECT proposition_id FROM proposition_status WHERE voting_session_id = ? AND is_validated = 0)', [req.params.sessionId]);
-
-        await db.query('UPDATE propositions SET locked = 0 WHERE id IN (SELECT proposition_id FROM proposition_status WHERE voting_session_id = ?)', [req.params.sessionId]);
-
-        await db.query('DELETE FROM proposition_status WHERE voting_session_id = ?', [req.params.sessionId]);
-
-
-        await db.query('DELETE FROM votes WHERE session_id = ?', [req.params.sessionId]);
 
         await db.query('DELETE FROM voting_sessions WHERE id = ?', [req.params.sessionId]);
 
@@ -375,6 +253,7 @@ router.delete('/:sessionId', async (req, res) => {
         res.status(500).json({ error: 'Database error', details: error });
     }
 });
+
 router.get('/proposition/:id', async (req, res) => {
     const propositionId = req.params.id;
 
@@ -410,10 +289,10 @@ router.get('/proposition/:id', async (req, res) => {
     }
 });
 
-router.get('/jury/vote/:direction', async (req, res) => {
+router.get('/jury/vote/:direction?', async (req, res) => {
     const userId = req.session.userId;
 
-    const [activeSession] = await db.query('SELECT id FROM voting_sessions WHERE is_active = 1');
+    const [activeSession] = await db.query('SELECT id FROM voting_sessions WHERE is_active = 1 and started = 1');
     if (activeSession.length === 0) {
         return res.status(400).json({ message: 'No active session found.' });
     }
@@ -477,7 +356,6 @@ router.get('/jury/vote/:direction', async (req, res) => {
     }
 });
 
-
 router.post('/jury/proposition/:id/vote', upload.none(), async (req, res) => {
     const propositionId = req.params.id;
     const { grade } = req.body;
@@ -485,7 +363,7 @@ router.post('/jury/proposition/:id/vote', upload.none(), async (req, res) => {
 
     try {
         const [activeSession] = await db.query(`
-            SELECT id FROM voting_sessions WHERE is_active = 1
+            SELECT id FROM voting_sessions WHERE is_active = 1 and started = 1
         `);
 
         if (activeSession.length === 0) {

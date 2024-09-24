@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
     return res.redirect('/propositions/add')
   else
     return res.redirect('/auth/login')
-})
+});
 
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;

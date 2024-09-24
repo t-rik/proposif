@@ -208,13 +208,6 @@
         sortable: true,
         filter: true
       },
-      // {
-      //   headerName: "Started",
-      //   field: "started",
-      //   cellRenderer: params => params.value ? 'Yes' : 'No',
-      //   sortable: true,
-      //   filter: true
-      // },
       {
         headerName: "Start Time",
         field: "start_time",
@@ -222,13 +215,6 @@
         filter: true,
         cellRenderer: params => params.value ? new Date(params.value).toLocaleString() : 'Not started'
       },
-      // {
-      //   headerName: "Ended",
-      //   field: "ended",
-      //   cellRenderer: params => params.value ? 'Yes' : 'No',
-      //   sortable: true,
-      //   filter: true
-      // },
       {
         headerName: "End Time",
         field: "end_time",
