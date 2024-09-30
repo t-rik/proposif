@@ -6,6 +6,7 @@ const checkUserOwnership = require('../middleware/checkUserOwnership');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const { render } = require('ejs');
 
 router.post('/init', async (req, res) => {
     const { type } = req.body;
@@ -147,89 +148,24 @@ router.post('/:sessionId/end', async (req, res) => {
     }
 });
 
-router.post('/exclude/:propositionId', async (req, res) => {
-    if (!req.session.isAdmin) {
-        return res.status(403).json({ error: 'Unauthorized' });
-    }
-    try {
-        await db.query('UPDATE propositions SET is_excluded = 1 WHERE id = ?', [req.params.propositionId]);
-        res.json({ success: true });
-    } catch (err) {
-        res.json({ success: false, error: err.message });
-    }
-});
-
-router.post('/include/:propositionId', async (req, res) => {
-    if (!req.session.isAdmin) {
-        return res.status(403).json({ error: 'Unauthorized' });
-    }
-    try {
-        await db.query('UPDATE propositions SET is_excluded = 0 WHERE id = ?', [req.params.propositionId]);
-        res.json({ success: true });
-    } catch (err) {
-        res.json({ success: false, error: err.message });
-    }
-});
-
 router.get('/', async (req, res) => {
     if (!req.session.isAdmin) {
         return res.status(403).json({ error: 'Unauthorized' });
     }
     const sessions = await db.query('SELECT * FROM voting_sessions');
 
-    res.render('voting-sessions/list', {
-        sessions: sessions[0], userId: req.session.userId,
+    res.render('layouts/main', {
+        userId: req.session.userId,
         isAdmin: req.session.isAdmin,
         isJury: req.session.isJury,
+        sessions: sessions[0],
+        title: 'SESSIONS',
+        view: '../voting-sessions/list',
+        css: ['tables.css'],
+        js: []
     });
 });
 
-router.get('/:id', async (req, res) => {
-    try {
-        const sessionId = req.params.id;
-
-        const [session] = await db.query('SELECT * FROM voting_sessions WHERE id = ?', [sessionId]);
-
-        if (session.length === 0) {
-            return res.status(404).json({ error: 'Session non trouvée' });
-        }
-
-        const [propositionsStatus] = await db.query(`
-            SELECT 
-                ps.proposition_id, 
-                ps.is_validated, 
-                ps.average_grade, 
-                p.id, 
-                p.date_emission,
-                CONCAT(u.first_name, ' ', u.last_name) AS full_name,
-                p.objet,
-                p.description_situation_actuelle,
-                p.description_amelioration_proposee,
-                p.is_excluded 
-            FROM proposition_status ps
-            JOIN propositions p ON ps.proposition_id = p.id
-            JOIN users u ON p.user_id = u.id
-            WHERE ps.voting_session_id = ?
-        `, [sessionId]);
-
-        if (propositionsStatus.length === 0) {
-            return res.status(404).json({ message: 'Aucune proposition trouvée pour cette session' });
-        }
-
-        res.render('voting-sessions/details', {
-            userId: req.session.userId,
-            isAdmin: req.session.isAdmin,
-            isJury: req.session.isJury,
-
-            session: session[0],
-            propositions: propositionsStatus,
-            sessionId,
-            locale: 'fr'
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Erreur de base de données', details: error });
-    }
-});
 
 router.delete('/:sessionId', async (req, res) => {
     if (!req.session.isAdmin) {
@@ -256,7 +192,6 @@ router.delete('/:sessionId', async (req, res) => {
 
 router.get('/proposition/:id', async (req, res) => {
     const propositionId = req.params.id;
-
     try {
         const [proposition] = await db.query(`
             SELECT p.*, 
@@ -401,5 +336,94 @@ router.post('/jury/proposition/:id/vote', upload.none(), async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
+router.get('/statut-vote', function (req, res) {
+    res.render('layouts/main', {
+        userId: req.session.userId,
+        isAdmin: req.session.isAdmin,
+        isJury: req.session.isJury,
+        title: 'statut',
+        css: ['status.css'],
+        js: ['status.js'],
+        view: '../voting-sessions/status'
+    });
+});
+
+router.get('/check-active-session', async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT id, type, started, is_active
+            FROM voting_sessions
+            WHERE is_active = 1 and started = 1
+            ORDER BY start_time DESC
+            LIMIT 1
+        `);
+
+        if (rows.length > 0) {
+            const session = rows[0];
+            res.json({
+                success: true,
+                sessionType: session.type,
+                sessionStarted: session.started,
+            });
+        } else {
+            res.json({ success: false, message: "No active session found" });
+        }
+    } catch (error) {
+        console.error("Error fetching active session:", error);
+        res.status(500).json({ success: false, message: "Error fetching session data" });
+    }
+});
+
+router.get('/:id', async (req, res) => {
+    try {
+        const sessionId = req.params.id;
+
+        const [session] = await db.query('SELECT * FROM voting_sessions WHERE id = ?', [sessionId]);
+
+        if (session.length === 0) {
+            return res.status(404).json({ error: 'Session non trouvée' });
+        }
+
+        const [propositionsStatus] = await db.query(`
+            SELECT 
+                ps.proposition_id, 
+                ps.is_validated, 
+                ps.average_grade, 
+                p.id, 
+                p.date_emission,
+                CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+                p.objet,
+                p.description_situation_actuelle,
+                p.description_amelioration_proposee,
+                p.is_excluded 
+            FROM proposition_status ps
+            JOIN propositions p ON ps.proposition_id = p.id
+            JOIN users u ON p.user_id = u.id
+            WHERE ps.voting_session_id = ?
+        `, [sessionId]);
+
+        if (propositionsStatus.length === 0) {
+            return res.status(404).json({ message: 'Aucune proposition trouvée pour cette session' });
+        }
+
+
+        res.render('layouts/main', {
+            userId: req.session.userId,
+            isAdmin: req.session.isAdmin,
+            isJury: req.session.isJury,
+            session: session[0],
+            propositions: propositionsStatus,
+            sessionId,
+            title: 'Details session',
+            view: '../voting-sessions/details',
+            css: ['tables.css'],
+            js: []
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Erreur de base de données', details: error });
+    }
+});
+
 
 module.exports = router;

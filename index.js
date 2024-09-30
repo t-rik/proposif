@@ -35,7 +35,7 @@ function simulateLatency(req, res, next) {
 }
 
 // app.use(simulateLatency);
-app.use(noCache);
+// app.use(noCache);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(session({
@@ -65,11 +65,11 @@ const fonctionsRoutes = require('./routes/functions');
 const { router: authRoutes, isAuthenticated } = require('./routes/auth');
 const isJury = require('./middleware/checkUserJury')
 
-app.use('/propositions', isAuthenticated, isJury,propositionRoutes);
+app.use('/propositions', isAuthenticated,propositionRoutes);
 app.use('/voting-sessions', isAuthenticated,votingSessionRoutes);
 app.use('/images', isAuthenticated, imageRoutes);
-app.use('/users', isAuthenticated, isJury, userRoutes);
-app.use('/functions', isAuthenticated, isJury,fonctionsRoutes);
+app.use('/users', isAuthenticated, userRoutes);
+app.use('/functions', isAuthenticated, fonctionsRoutes);
 app.use('/auth', authRoutes);
 app.use('/', authRoutes);
 

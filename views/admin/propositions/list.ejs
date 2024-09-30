@@ -86,9 +86,9 @@
       filter: brightness(1.2);
     }
 
-    .ag-floating-filter-button {
+    /* .ag-floating-filter-button {
       display: none !important;
-    }
+    } */
 
     .modal {
       display: none;
@@ -145,7 +145,6 @@
       cursor: pointer;
       font-weight: 500;
       font-size: 0.875rem;
-      /* Slightly smaller font size */
       transition: background-color 0.3s ease;
     }
 
@@ -191,7 +190,8 @@
           filter: true,
           resizable: true,
           flex: 1,
-          sort: 'desc'
+          sort: 'desc',
+          minWidth: 80
         },
         {
           headerName: "Objet",
@@ -199,7 +199,8 @@
           sortable: true,
           filter: true,
           resizable: true,
-          flex: 2
+          flex: 2,
+          minWidth: 200
         },
         {
           headerName: "Situation Actuelle",
@@ -207,7 +208,8 @@
           sortable: true,
           filter: true,
           resizable: true,
-          flex: 3
+          flex: 3,
+          minWidth: 300
         },
         {
           headerName: "Amélioration Proposée",
@@ -215,19 +217,23 @@
           sortable: true,
           filter: true,
           resizable: true,
-          flex: 3
+          flex: 3,
+          minWidth: 300
         },
         {
           headerName: "Date",
           field: "date_emission",
           sortable: true,
           flex: 1.5,
-          valueFormatter: params => params.value ? new Date(params.value).toLocaleDateString('fr-FR') : ''
+          valueFormatter: params => params.value ? new Date(params.value).toLocaleDateString('fr-FR') : '',
+          minWidth: 140
         },
         {
           headerName: "Actions",
           cellRenderer: 'buttonRenderer',
-          maxWidth: 150
+          maxWidth: 150,
+          sortable: false,
+          filter: false
         }
       ];
 
@@ -251,7 +257,6 @@
         defaultColDef: {
           sortable: true,
           filter: true,
-          floatingFilter: true,
           resizable: true,
         },
         pagination: true,

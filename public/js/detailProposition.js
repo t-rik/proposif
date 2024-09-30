@@ -23,42 +23,48 @@ function closeModal() {
 const url = window.location.pathname;
 const segments = url.split('/');
 const id = segments[segments.length - 1];
-
 Dropzone.options.beforeDropzone = {
     paramName: "beforeImages",
     acceptedFiles: "image/*",
-    thumbnailWidth: "250",
-    thumbnailHeight: "250",
+    thumbnailWidth: 250,
+    thumbnailHeight: 250,
     dictCancelUpload: 'Annuler',
-    maxFilesize: 5,
     addRemoveLinks: true,
-    clickable: "#add2",
+    autoProcessQueue: false,
+    clickable: "#add1",
     dictDefaultMessage: '',
     dictRemoveFile: '<i class="fas fa-trash-alt"></i>',
     init: function () {
         let myDropzone = this;
+        let isUploading = false;
+
         this.on("error", function (file, response) {
-            var deleteButton = file.previewElement.querySelector(".dz-remove");
+            const deleteButton = file.previewElement.querySelector(".dz-remove");
             if (deleteButton) {
                 deleteButton.style.display = "none";
             }
-
-            var errorMark = file.previewElement;
-            if (errorMark) {
-                errorMark.addEventListener("click", function () {
-                    deleteButton.click();
-                });
-            }
-        })
+            console.error('Upload error:', response);
+        });
 
         this.on("success", function (file, response) {
             file.id = response.uploadedFiles[0].fileId;
             file.size = response.uploadedFiles[0].size;
-            refreshGallery('after');
+            refreshGallery('before');
+            isUploading = false; // Mark upload as finished
+            processNextFile(); // Start the next file upload
+        });
+
+        this.on("sending", function (file, xhr, formData) {
+            if (!file.compressed) {
+                xhr.abort();
+                console.log('File not compressed. Aborting upload.');
+            } else {
+                isUploading = true; // Mark upload as in progress
+            }
         });
 
         this.on("removedfile", function (file) {
-            if (file.id) {
+            if (file.id && file.compressed) {
                 fetch(`/images/delete/${file.id}`, {
                     method: 'DELETE'
                 })
@@ -76,15 +82,54 @@ Dropzone.options.beforeDropzone = {
                             refreshGallery('before');
                         }
                     }).catch(error => {
-                        let mockFile = {
-                            name: file.name,
-                            size: file.size,
-                            id: file.id
-                        };
-                        this.displayExistingFile(mockFile, `/images/${id}/before/${file.name}`);
-                        mockFile.previewElement.classList.add("dz-complete");
+                        console.error('Error removing file:', error);
                     });
             }
+        });
+
+        this.on("addedfile", function (file) {
+            if (file.compressed) {
+                processNextFile(); 
+                return;
+            }
+            if (file.size < 200) {
+                file.compressed = true;
+                processNextFile();
+                return;
+            }
+            const compressionRatio = 0.9;
+
+            new Compressor(file, {
+                quality: compressionRatio,
+                maxWidth: 800,
+                maxHeight: 600,
+                success: function (result) {
+                    myDropzone.removeFile(file);
+                    result.compressed = true;
+                    myDropzone.addFile(result);
+                    processNextFile(); // Start the upload after compression
+                },
+                error: function (err) {
+                    console.error('Error compressing image:', err);
+                }
+            });
+        });
+
+        function processNextFile() {
+            if (!isUploading && myDropzone.getQueuedFiles().length > 0) {
+                const nextFile = myDropzone.getQueuedFiles()[0]; // Get the next file to upload
+                if (nextFile.compressed) { // Only process if compressed
+                    myDropzone.processFile(nextFile); // Process the file
+                } else {
+                    console.log('Next file is not compressed, skipping upload.');
+                }
+            } else {
+                console.log('No files in queue or already uploading.');
+            }
+        }
+
+        this.on("queuecomplete", function () {
+            console.log('All files have been processed.');
         });
 
         fetch(`/images/proposition/${id}?type=before`)
@@ -95,7 +140,8 @@ Dropzone.options.beforeDropzone = {
                         let mockFile = {
                             name: file.filename,
                             size: file.file_size,
-                            id: file.id
+                            id: file.id,
+                            compressed: true
                         };
                         this.displayExistingFile(mockFile, `/images/${id}/before/${file.filename}`);
                         mockFile.previewElement.classList.add("dz-complete");
@@ -103,9 +149,11 @@ Dropzone.options.beforeDropzone = {
                         removeButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
                     });
                 }
-            })
+            });
     }
 };
+
+
 
 Dropzone.options.afterDropzone = {
     paramName: "afterImages",
@@ -113,11 +161,11 @@ Dropzone.options.afterDropzone = {
     thumbnailWidth: "250",
     thumbnailHeight: "250",
     dictCancelUpload: 'Annuler',
-    maxFilesize: 5,
     addRemoveLinks: true,
     clickable: "#add2",
     dictDefaultMessage: '',
     dictRemoveFile: '<i class="fas fa-trash-alt"></i>',
+    autoProcessQueue: false,
     init: function () {
         let myDropzone = this;
         this.on("error", function (file, response) {
@@ -170,6 +218,36 @@ Dropzone.options.afterDropzone = {
             }
         });
 
+        this.on("addedfile", function (file) {
+            if (file.compressed) {
+                return;
+            }
+            if (file.size < 200) {
+                file.compressed = true;
+                return;
+            }
+
+            myDropzone.removeFile(file);
+
+            const compressionRatio = 0.9;
+
+            new Compressor(file, {
+                quality: compressionRatio,
+                maxWidth: 800,
+                maxHeight: 600,
+                success: function (result) {
+                    result.compressed = true;
+                    myDropzone.addFile(result);
+                    myDropzone.uploadFile(result);
+
+                },
+                error: function (err) {
+                    console.error('Error compressing image:', err);
+                }
+            });
+        });
+
+
         fetch(`/images/proposition/${id}?type=after`)
             .then(response => response.json())
             .then(data => {
@@ -178,7 +256,8 @@ Dropzone.options.afterDropzone = {
                         let mockFile = {
                             name: file.filename,
                             size: file.file_size,
-                            id: file.id
+                            id: file.id,
+                            compressed: true
                         };
                         this.displayExistingFile(mockFile, `/images/${id}/after/${file.filename}`);
                         mockFile.previewElement.classList.add("dz-complete");
@@ -191,6 +270,8 @@ Dropzone.options.afterDropzone = {
 };
 
 function openForm(type) {
+    document.body.classList.add('popup-active'); // Disable body scrolling
+
     if (type === 'before') {
         document.getElementById('popupFormBefore').style.display = 'flex';
     } else if (type === 'after') {
@@ -199,6 +280,8 @@ function openForm(type) {
 }
 
 function closeForm(type) {
+    document.body.classList.remove('popup-active'); // Re-enable body scrolling
+
     if (type === 'before') {
         document.getElementById('popupFormBefore').style.display = 'none';
     } else if (type === 'after') {

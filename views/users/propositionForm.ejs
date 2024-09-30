@@ -1,13 +1,23 @@
 <form id="upload-form" method="post">
   <h1>Soumettre une Proposition</h1>
-  <label for="object">Objet :</label>
-  <input type="text" id="object" name="objet" placeholder="Entrez les détails de l'objet" required>
 
-  <label for="description1">Description de la situation actuelle :</label>
-  <textarea id="description1" name="description_situation_actuelle" placeholder="Entrez la description ici" required></textarea>
+  <div class="input-container">
+    <label for="object">Objet :</label>
+    <input type="text" id="object" name="objet" maxlength="100" placeholder="Entrez les détails de l'objet" required>
+    <span class="counter" id="charCounter1">0 / 100</span>
+  </div>
 
-  <label for="description2">Description de l'amélioration proposée :</label>
-  <textarea id="description2" name="description_amelioration_proposee" placeholder="Entrez la description ici" required></textarea>
+  <div class="input-container textarea-container">
+    <label for="description1">Description de la situation actuelle :</label>
+    <textarea id="description1" name="description_situation_actuelle" maxlength="800" placeholder="Entrez la description ici" required></textarea>
+    <span class="counter" id="charCounter2">0 / 800</span>
+  </div>
+
+  <div class="input-container textarea-container">
+    <label for="description2">Description de l'amélioration proposée :</label>
+    <textarea id="description2" name="description_amelioration_proposee" maxlength="800" placeholder="Entrez la description ici" required></textarea>
+    <span class="counter" id="charCounter3">0 / 800</span>
+  </div>
 
   <label>Impact :</label>
   <div class="checkbox-group">
@@ -41,7 +51,9 @@
 
   <button type="submit">Soumettre</button>
 </form>
+
 <div id="error-message" style="color: red;"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>

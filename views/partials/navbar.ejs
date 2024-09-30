@@ -15,7 +15,6 @@
     <div class="navbar-menu" id="open-navbar1">
       <ul class="navbar-nav">
 
-        <!-- Show only to Admin -->
         <li class="navbar-dropdown">
           <a href="#" class="dropdown-toggler" data-dropdown="my-dropdown-id">
             Propositions <i class="fa fa-angle-down"></i>
@@ -28,10 +27,9 @@
             <li class="separator"></li>
             <li><a href="/propositions">Toutes les propositions</a></li>
             <% } %>
-
           </ul>
         </li>
-
+        <% if (isAdmin) { %>
         <li class="navbar-dropdown">
           <a href="#" class="dropdown-toggler" data-dropdown="blog">
             Utilisateurs <i class="fa fa-angle-down"></i>
@@ -42,12 +40,11 @@
             <li><a href="/users/add">Ajouter utilisateur</a></li>
           </ul>
         </li>
-
-
-        <% if (isAdmin) { %>
-        <li><a href="/voting-sessions">Vote</a></li>
         <% } %>
-
+        <% if (isAdmin) { %>
+        <li><a href="/voting-sessions">Gerer sessions de vote</a></li>
+        <% } %>
+        <li><a href="/voting-sessions/statut-vote">Vote</a></li>
         <li><a href="/auth/logout">Déconnexion</a></li>
 
       </ul>

@@ -15,63 +15,60 @@
           field: "id",
           sortable: true,
           resizable: true,
-          filter: true,
-          flex: 1
+          flex: 1,
+          minWidth: 80
         },
         {
           headerName: "Nom d'utilisateur",
           field: "username",
           sortable: true,
           resizable: true,
+          flex: 2,
+          minWidth: 130
 
-          filter: true,
-          flex: 2
         },
         {
           headerName: "Prénom",
           field: "first_name",
           sortable: true,
           resizable: true,
-
-          filter: true,
-          flex: 2
+          flex: 2,
+          minWidth: 130
         },
         {
           headerName: "Nom",
           field: "last_name",
           sortable: true,
           resizable: true,
-
-          filter: true,
-          flex: 2
+          flex: 2,
+          minWidth: 130
         },
         {
           headerName: "Fonction",
           field: "function_name",
           sortable: true,
           resizable: true,
-          filter: true,
-          flex: 2
+          flex: 2,
+          minWidth: 130
+
         },
         {
           headerName: "Admin",
           field: "is_admin",
           sortable: true,
           resizable: true,
-          filter: true,
-          floatingFilter: false,
           flex: 1,
-          cellRenderer: params => params.value ? 'Oui' : 'Non'
+          cellRenderer: params => params.value ? 'Oui' : 'Non',
+          minWidth: 100
+
         },
         {
           headerName: "Jury",
           field: "is_jury",
           sortable: true,
-          filter: true,
-          floatingFilter: false,
-
           flex: 1,
-          cellRenderer: params => params.value ? 'Oui' : 'Non'
+          cellRenderer: params => params.value ? 'Oui' : 'Non',
+          minWidth: 100
         },
         {
           headerName: "Actions",
@@ -100,7 +97,6 @@
         defaultColDef: {
           sortable: true,
           filter: true,
-          floatingFilter: true,
           resizable: true,
         },
         paginationPageSize: 50,

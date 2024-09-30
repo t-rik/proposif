@@ -48,16 +48,10 @@ a {
   background-color: #fff;
   padding: 1rem 1.15rem;
   border-bottom: 1px solid #eceef3;
-  /*
-  |-----------------------------------
-  | Start navbar logo or brand etc..
-  |-----------------------------------
-  */
-  /*
-  |-----------------------------------
-  | Start navbar menu
-  |-----------------------------------
-  */
+}
+
+.dropdown.show li a:hover{
+  color: #2260ff !important;
 }
 
 @media (min-width: 576px) {

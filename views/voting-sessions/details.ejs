@@ -1,76 +1,6 @@
-<!DOCTYPE html>
-<html lang="fr">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Détails de la Session</title>
-
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css">
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
-
-  <style>
-    body {
-      font-family: 'Roboto', sans-serif;
-      background-color: #f8f9fa;
-      color: #333;
-    }
-
-    h1 {
-      text-align: center;
-      color: #003366;
-      margin: 20px 0;
-      font-size: 2.5rem;
-    }
-
-    .content-container {
-      width: 95%;
-      max-width: 1800px;
-      margin: 0 auto;
-      padding: 0;
-    }
-
-    #myGrid {
-      width: 100%;
-      min-height: 600px;
-      margin-top: 20px;
-    }
-
-    .buttons-container {
-      display: flex;
-      justify-content: center;
-      margin: 20px 0;
-    }
-
-    .button {
-      padding: 10px 20px;
-      margin: 0 10px;
-      background-color: #004d99;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    .button:hover {
-      background-color: #003366;
-    }
-
-    .button.secondary {
-      background-color: #d33;
-    }
-
-    .button.secondary:hover {
-      background-color: #a00;
-    }
-  </style>
-</head>
-
-<body>
   <div class="content-container">
     <h1>Détails de la Session</h1>
 
-    <!-- Session Info Section -->
     <div class="session-info">
       <p><strong>ID de la session :</strong> <%= session.id %></p>
       <p><strong>Type de session :</strong> <%= session.type %></p>
@@ -79,17 +9,16 @@
       <p><strong>Date de fin :</strong> <%= session.end_time ? new Date(session.end_time).toLocaleString('fr-FR') : 'Non terminée' %></p>
     </div>
 
-    <!-- Buttons for actions -->
-    <div class="buttons-container">
+    <div class="btncontainer">
       <% if (!session.started) { %>
-      <button class="button" id="startSessionButton">Start Session</button>
+      <button class="button btn-primary" id="startSessionButton">Demarrer session</button>
       <% } %>
 
       <% if (session.started && !session.ended) { %>
-      <button class="button" id="endSessionButton">End Session</button>
+      <button class="button btn-primary" id="endSessionButton">Terminer sessions</button>
       <% } %>
 
-      <button class="button secondary" id="deleteSessionButton">Cancel Session</button>
+      <button class="button danger-btn" id="deleteSessionButton">Annuler Session</button>
     </div>
 
     <div id="myGrid" class="ag-theme-alpine"></div>
@@ -179,93 +108,92 @@
                   Swal.fire('Deleted!', 'Session has been deleted.', 'success');
                   if (result.error) {
                     Swal.fire('Error', 'Failed to delete session.', 'error')
-                  }else{
-                  setTimeout(() => {
-                    window.location.href = '/voting-sessions';
-                  }, 1500)}
+                  } else {
+                    setTimeout(() => {
+                      window.location.href = '/voting-sessions';
+                    }, 1500)
+                  }
                 })
                 .catch(() => Swal.fire('Error', 'Failed to delete session.', 'error'));
             }
           });
         });
       }
-      const columnDefs = [
-      {
-      headerName: "ID",
-      field: "id",
-      sortable: true,
-      filter: true,
-      resizable: true,
-      flex: 1
-      },
-      {
-      headerName: "Nom Utilisateur",
-      field: "full_name",
-      sortable: true,
-      filter: true,
-      resizable: true,
-      flex: 1.5
-      },
-      {
-      headerName: "Objet",
-      field: "objet",
-      sortable: true,
-      filter: true,
-      resizable: true,
-      flex: 1.5
-      },
-      {
-      headerName: "Description Situation Actuelle",
-      field: "description_situation_actuelle",
-      sortable: true,
-      filter: true,
-      resizable: true,
-      flex: 3
-      },
-      {
-      headerName: "Description Amélioration Proposée",
-      field: "description_amelioration_proposee",
-      sortable: true,
-      filter: true,
-      resizable: true,
-      flex: 3
-      },
-      {
-      headerName: "Exclue",
-      field: "is_excluded",
-      sortable: true,
-      filter: true,
-      resizable: true,
-      flex: 1,
-      cellRenderer: params => params.value ? 'Oui' : 'Non'
-      },
-      {
-      headerName: "Date d'émission",
-      field: "date_emission",
-      sortable: true,
-      filter: true,
-      resizable: true,
-      flex: 1.5,
-      valueFormatter: params => new Date(params.value).toLocaleDateString('fr-FR')
-      },
-      {
-      headerName: "Note Moyenne",
-      field: "average_grade",
-      sortable: true,
-      filter: true,
-      resizable: true,
-      flex: 1,
-      valueFormatter: params => params.value ? params.value.toFixed(2) : 'N/A' // Format to two decimal places
-      },
-      {
-      headerName: "Détails",
-      cellRenderer: (params) => {
-      return `<button class="button details-button" data-id="${params.data.id}">Détails</button>`;
-      },
-      flex: 2
-      }
+      const columnDefs = [{
+          headerName: "ID",
+          field: "id",
+          sortable: true,
+          filter: true,
+          resizable: true,
+          flex: 1
+        },
+        {
+          headerName: "Nom Utilisateur",
+          field: "full_name",
+          sortable: true,
+          filter: true,
+          resizable: true,
+          flex: 1.5
+        },
+        {
+          headerName: "Objet",
+          field: "objet",
+          sortable: true,
+          filter: true,
+          resizable: true,
+          flex: 1.5
+        },
+        {
+          headerName: "Description Situation Actuelle",
+          field: "description_situation_actuelle",
+          sortable: true,
+          filter: true,
+          resizable: true,
+          flex: 3
+        },
+        {
+          headerName: "Description Amélioration Proposée",
+          field: "description_amelioration_proposee",
+          sortable: true,
+          filter: true,
+          resizable: true,
+          flex: 3
+        },
+        {
+          headerName: "Exclue",
+          field: "is_excluded",
+          sortable: true,
+          filter: true,
+          resizable: true,
+          flex: 1,
+          cellRenderer: params => params.value ? 'Oui' : 'Non'
+        },
+        {
+          headerName: "Date d'émission",
+          field: "date_emission",
+          sortable: true,
+          filter: true,
+          resizable: true,
+          flex: 1.5,
+          valueFormatter: params => new Date(params.value).toLocaleDateString('fr-FR')
+        },
+        {
+          headerName: "Note Moyenne",
+          field: "average_grade",
+          sortable: true,
+          filter: true,
+          resizable: true,
+          flex: 1,
+          valueFormatter: params => params.value ? params.value.toFixed(2) : 'N/A'
+        },
+        {
+          headerName: "Détails",
+          cellRenderer: (params) => {
+            return `<button class="button details-button" data-id="${params.data.id}">Détails</button>`;
+          },
+          flex: 2
+        }
       ];
-
 
       const dataContainer = document.getElementById('dataContainer');
       const rowData = JSON.parse(dataContainer.getAttribute('data-row-data'));
@@ -285,11 +213,8 @@
       eGridDiv.addEventListener('click', (event) => {
         if (event.target.classList.contains('details-button')) {
           const propositionId = event.target.getAttribute('data-id');
-          window.location.href = `/voting-sessions/proposition/${propositionId}`; 
+          window.location.href = `/voting-sessions/proposition/${propositionId}`;
         }
       });
     });
   </script>
-</body>
-
-</html>

@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
       title: 'Propositions',
       propositions: results,
       hasPropositions: results.length > 0,
-      css: [],
+      css: ["tables.css"],
       js: [],
       view: '../admin/propositions/list'
     });
@@ -40,7 +40,7 @@ router.get('/mes-propositions', async (req, res) => {
       title: 'Mes Propositions',
       propositions: results,
       hasPropositions: results.length > 0,
-      css: [],
+      css: ["tables.css"],
       js: [],
       view: '../users/mespropositions'
     });
@@ -59,7 +59,7 @@ router.get('/add', (req, res) => {
     title: 'add proposition',
     view: '../users/propositionForm',
     css: ['propositionForm.css'],
-    js: []
+    js: ['propositionForm.js']
   });
 });
 
@@ -158,8 +158,8 @@ router.get('/proposition/edit/:id', async (req, res) => {
 
       title: `Edit Proposition - ${proposition.objet}`,
       proposition: proposition[0],
-      css: ['modifierProposition.css'],
-      js: ['modifierProposition.js'],
+      css: ['propositionForm.css'],
+      js: ['propositionForm.js'],
       view: '../users/modifierProposition'
     });
   } catch (error) {
@@ -170,53 +170,26 @@ router.get('/proposition/edit/:id', async (req, res) => {
 
 router.post('/update/:id', async (req, res) => {
   const propositionId = req.params.id;
-  const { objet, description_situation_actuelle, description_amelioration_proposee, statut } = req.body;
+  const { objet, description_situation_actuelle, description_amelioration_proposee, impact_economique, impact_fonctionnement, impact_formation, impact_technique, statut } = req.body;
+  console.log(req.body);
 
   try {
     await db.query(
       `UPDATE propositions 
-       SET objet = ?, description_situation_actuelle = ?, description_amelioration_proposee = ?, statut = ?
+       SET objet = ?, description_situation_actuelle = ?, description_amelioration_proposee = ?, impact_economique = ?, impact_fonctionnement = ?, impact_formation = ?, impact_technique = ? ,statut = ?
        WHERE id = ?`,
-      [objet, description_situation_actuelle, description_amelioration_proposee, statut, propositionId]
+      [objet, description_situation_actuelle, description_amelioration_proposee,
+        impact_economique || 0,
+        impact_technique || 0,
+        impact_formation || 0,
+        impact_fonctionnement || 0,
+        statut, propositionId]
     );
 
     res.redirect(`/propositions/proposition/${propositionId}`);
   } catch (error) {
     console.error(`Error updating proposition: ${error.message}`);
     res.status(500).send('Internal Server Error');
-  }
-});
-
-router.get('/admin/:id', async (req, res) => {
-  try {
-    const [result] = await db.query('UPDATE propositions SET excluded = 1 WHERE id = ?', [req.params.id]);
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Proposition not found' });
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Server Error' });
-  }
-});
-
-router.post('/exclude/:propositionId', async (req, res) => {
-  try {
-    await db.query('UPDATE propositions SET is_excluded = 1 WHERE id = ?', [req.params.propositionId]);
-    res.json({ success: true });
-  } catch (err) {
-    res.json({ success: false, error: err.message });
-  }
-});
-
-router.post('/include/:propositionId', async (req, res) => {
-  try {
-    await db.query('UPDATE propositions SET is_excluded = 0 WHERE id = ?', [req.params.propositionId]);
-    res.json({ success: true });
-  } catch (err) {
-    res.json({ success: false, error: err.message });
   }
 });
 

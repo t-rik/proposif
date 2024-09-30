@@ -1,8 +1,8 @@
 function isJury(req, res, next) {
     if (req.session.isJury) {
-        res.redirect('/voting-sessions/jury/vote');
-    } else { 
         next();
+    } else {
+        res.redirect('/');
     }
 }
 module.exports = isJury;

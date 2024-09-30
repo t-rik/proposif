@@ -92,7 +92,7 @@
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
 
-    .status.non-soldee {
+    .status.annulee {
         background-color: #e74c3c;
         border-color: #c0392b;
     }
@@ -107,7 +107,7 @@
         border-color: #1e8449;
     }
 
-    .status.anulee {
+    .status.non {
         background-color: #95a5a6;
         border-color: #7f8c8d;
     }
@@ -262,6 +262,7 @@
         justify-content: center;
         align-items: center;
         z-index: 1000;
+        overflow: auto;
     }
 
 
@@ -283,10 +284,17 @@
         padding: 20px;
         border-radius: 8px;
         width: 60%;
-        min-width: 300px;
-        max-width: 800px;
+        min-width: 400px;
+        max-width: 700px;
+        max-height: 90%;
         text-align: center;
         position: relative;
+        overflow-y: auto;
+    }
+
+    body.popup-active {
+        overflow: hidden;
+        /* Prevent body from scrolling when popup is active */
     }
 
     .popup-close {
@@ -306,7 +314,7 @@
         max-width: 100%;
         display: flex;
         flex-wrap: wrap;
-        gap: 15px;
+        gap: 0px;
         cursor: default;
         justify-content: center;
     }
@@ -320,13 +328,22 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        margin: 0px;
         margin-top: 10px;
+    }
+
+    .dz-filename{
+        position: relative;
+    }
+    .dz-filename:hover{
+        right: 100%;
     }
 
     .dz-image {
         width: 100px;
         height: 100px;
         overflow: hidden;
+        margin: 0px;
         border-radius: 8px;
         margin-bottom: 5px;
         display: flex;
@@ -336,6 +353,7 @@
 
     .dz-image img {
         object-fit: cover;
+        margin: 0px;
         width: 100%;
         height: 100%;
     }

@@ -11,7 +11,7 @@ span.ag-header-cell-text {
     color: white;
 }
 
-.ag-icon{
+.ag-icon {
     color: white !important;
 }
 
@@ -44,7 +44,7 @@ h1 {
 
 .ag-theme-alpine {
     --ag-header-foreground-color: white;
-    --ag-header-background-color: #004d99 !important  ;
+    --ag-header-background-color: #004d99 !important;
     --ag-header-cell-hover-background-color: #003366;
     --ag-row-hover-color: #e0f7ff;
     --ag-border-color: #dddddd;
@@ -87,4 +87,28 @@ h1 {
 
 .button.secondary:hover {
     background-color: #003366;
+}
+
+.btn-primary {
+    padding: 10px;
+    font-size: 1em;
+    background-color: #116ed1;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btncontainer {
+    width: 90%;
+    text-align: right;
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+}
+.danger-btn{
+    background-color: rgb(207, 1, 1);
+}
+.danger-btn:hover {
+    background-color: rgb(168, 0, 0);
 }
