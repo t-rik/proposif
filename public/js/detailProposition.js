@@ -1,3 +1,28 @@
+function confirmDelete(propositionId) {
+    Swal.fire({
+        title: "Êtes-vous sûr de vouloir supprimer cette proposition ?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Oui',
+        cancelButtonText: 'Non'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/propositions/${propositionId}/delete`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const sessionId = '<%= votingSessionId %>';
+                        window.location.href = `http://localhost:3000/voting-sessions/${sessionId}`;
+                    } else {
+                        Swal.fire("Erreur", data.message, "error");
+                    }
+                });
+        }
+    });
+}
+
 function openModal(imageSrc) {
     const modal = document.getElementById('imageModal');
     const modalImg = document.getElementById('modalImage');
@@ -89,7 +114,7 @@ Dropzone.options.beforeDropzone = {
 
         this.on("addedfile", function (file) {
             if (file.compressed) {
-                processNextFile(); 
+                processNextFile();
                 return;
             }
             if (file.size < 200) {

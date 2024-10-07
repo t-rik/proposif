@@ -1,9 +1,14 @@
 <div class="proposition-container">
   <header class="proposition-header">
     <h1 class="proposition-title"><%= proposition.objet %></h1>
-    <% if (!proposition.locked && proposition.user_id == userId) { %>
-    <a href="/propositions/proposition/edit/<%= proposition.id %>" class="btn-edit">Modifier</a>
-    <% } %>
+    <div class="btns">
+      <% if ((!proposition.locked && proposition.user_id == userId) || isAdmin) { %>
+      <a href="/propositions/proposition/edit/<%= proposition.id %>" class="btn-edit">Modifier</a>
+      <% } %>
+      <% if (isAdmin) { %>
+      <button class="btn-delete" onclick="confirmDelete(<%= proposition.id %>)">Supprimer</button>
+      <% } %>
+    </div>
   </header>
 
   <section class="proposition-info">
@@ -44,7 +49,7 @@
 
   <section class="proposition-images">
     <h2 class="images-title">Images Avant
-      <% if (!proposition.locked && proposition.user_id == userId) { %>
+      <% if ((!proposition.locked && proposition.user_id == userId) || isAdmin) { %>
       <button class="btn-edit" onclick="openForm('before')">Gérer images</button>
       <% } %>
     </h2>
@@ -52,7 +57,7 @@
     </div>
 
     <h2 class="images-title">Images Après
-      <% if (proposition.statut == 'soldee' && !proposition.locked && proposition.user_id == userId) { %><button class="btn-edit" onclick="openForm('after')">Gérer images</button><%}%>
+      <% if (proposition.statut == 'soldee' && ((!proposition.locked && proposition.user_id == userId) || isAdmin)) { %><button class="btn-edit" onclick="openForm('after')">Gérer images</button><%}%>
     </h2>
     <% if (proposition.statut !== 'soldee') { %>
       <p class="no-images-message">Les images "Après" ne peuvent être ajoutées que si la proposition est "Soldée".</p>

@@ -105,9 +105,7 @@ router.post('/:sessionId/start', async (req, res) => {
             return res.status(404).json({ message: 'Voting session not found' });
         }
 
-        await db.query('UPDATE propositions SET can_be_voted = 1 WHERE locked = 1');
-
-        res.json({ message: 'Voting session started, jury can vote now' });
+        res.status(200).json({success:true, message: 'Voting session started, jury can vote now' });
     } catch (error) {
         res.status(500).json({ error: 'Database error', details: error });
     }
@@ -207,7 +205,15 @@ router.get('/proposition-status/:id', async (req, res) => {
                         WHERE voting_completed = 0
                     ) THEN 1
                     ELSE 0
-                END AS is_current
+                END AS is_current,
+                CASE
+                    WHEN ps.proposition_id = (
+                        SELECT MAX(proposition_id)
+                        FROM proposition_status
+                        WHERE voting_completed = 0
+                    ) THEN 1
+                    ELSE 0
+                END AS is_last
             FROM proposition_status ps
             WHERE ps.proposition_id = ?
             LIMIT 1
@@ -216,11 +222,12 @@ router.get('/proposition-status/:id', async (req, res) => {
         if (!propositionStatus) {
             return res.status(404).json({ message: 'Proposition non trouvée ou hors de la session de vote actuelle.' });
         }
-        
+
         res.status(200).json({
             is_voted: propositionStatus[0].is_voted,
             voting_completed: propositionStatus[0].voting_completed,
             is_current: propositionStatus[0].is_current,
+            is_last: propositionStatus[0].is_last,  // New field indicating if it's the last one
             average_grade: propositionStatus[0].average_grade,
             is_validated: propositionStatus[0].is_validated
         });
@@ -229,6 +236,7 @@ router.get('/proposition-status/:id', async (req, res) => {
         res.status(500).json({ error: 'Erreur interne du serveur : ' + error.message });
     }
 });
+
 
 
 
@@ -255,6 +263,21 @@ router.get('/current-proposition-id', async (req, res) => {
     }
 });
 
+router.get('/current-session/grades', async (req, res) => {
+    try {
+        const [results] = await db.query(`
+            SELECT ps.proposition_id, ps.average_grade
+            FROM proposition_status ps
+            JOIN voting_sessions vs ON ps.voting_session_id = vs.id
+            WHERE vs.is_active = 1 AND vs.started = 1 AND vs.ended = 0
+        `);
+
+        res.json(results);
+    } catch (error) {
+        console.error('Erreur lors de la récupération des notes des propositions:', error);
+        res.status(500).json({ error: 'Erreur interne du serveur' });
+    }
+});
 
 router.get('/current-proposition', async (req, res) => {
     const userId = req.session.userId;
