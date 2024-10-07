@@ -10,12 +10,12 @@
     </div>
 
     <div class="btncontainer">
+      <div class="extra-btns">
+        <button id="next-proposition-btn" class="button btn-primary" style="display: none;">Proposition suivante</button>
+        <button id="force-end-vote-btn" class="button danger-btn" style="display: none;">Forcer fin vote</button>
+      </div>
       <% if (!session.started) { %>
       <button class="button btn-primary" id="startSessionButton">Demarrer session</button>
-      <% } %>
-
-      <% if (session.started && !session.ended) { %>
-      <button class="button btn-primary" id="endSessionButton">Terminer sessions</button>
       <% } %>
 
       <button class="button danger-btn" id="deleteSessionButton">Annuler Session</button>
@@ -27,8 +27,126 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.noStyle.js"></script>
+  <script src="/localization/fr-FR.js"></script>
+  <style>
+    .current-proposition-row {
+      background-color: #f0f8ff;
+      font-weight: bold;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+      border-left: 4px solid #004d99;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .current-proposition-row:hover {
+      background-color: #e6f3ff;
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.2);
+    }
+  </style>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      const dataContainer = document.getElementById('dataContainer');
+      const rowData = JSON.parse(dataContainer.getAttribute('data-row-data'));
+
+      const nextPropositionBtn = document.getElementById('next-proposition-btn');
+      const forceEndVoteBtn = document.getElementById('force-end-vote-btn');
+      var currentPropositionId = null;
+      async function fetchAndUpdatePropositionStatus() {
+        try {
+          const idResponse = await fetch('/voting-sessions/current-proposition-id');
+          const idResult = await idResponse.json();
+
+          if (idResponse.ok) {
+            currentPropositionId = idResult.propositionId;
+
+            highlightCurrentProposition(currentPropositionId)
+            const statusResponse = await fetch(`/voting-sessions/proposition-status/${currentPropositionId}`);
+            const statusResult = await statusResponse.json();
+
+            if (statusResponse.ok) {
+              const shouldShowNext = statusResult.is_voted && !statusResult.voting_completed;
+              const shouldShowForceEnd = !shouldShowNext;
+
+              nextPropositionBtn.style.display = shouldShowNext ? 'block' : 'none';
+              forceEndVoteBtn.style.display = shouldShowForceEnd ? 'block' : 'none';
+
+            } else {
+              console.error(statusResult.error || 'Erreur lors de la récupération de l\'état de la proposition.');
+            }
+          } else {
+            console.error(idResult.error || 'Erreur lors de la récupération de l\'ID de la proposition.');
+          }
+        } catch (error) {
+          console.error('Erreur lors de la requête pour vérifier l\'état des propositions :', error);
+        }
+      }
+      fetchAndUpdatePropositionStatus()
+      setInterval(fetchAndUpdatePropositionStatus, 2000);
+
+      nextPropositionBtn.addEventListener('click', async () => {
+        const result = await Swal.fire({
+          title: 'Passer à la prochaine proposition?',
+          text: "Êtes-vous sûr de vouloir passer à la prochaine proposition?",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#004d99',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'Oui, continuer!',
+        });
+
+        if (result.isConfirmed) {
+          try {
+            const response = await fetch('/voting-sessions/next', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            });
+            const result = await response.json();
+            if (response.ok) {
+              Swal.fire('Succès', '', 'success');
+
+              await fetchAndUpdatePropositionStatus();
+            } else {
+              Swal.fire('Erreur', result.error || 'Erreur lors de la transition vers la prochaine proposition.', 'error');
+            }
+          } catch (error) {
+            console.error('Erreur lors de la requête pour passer à la prochaine proposition :', error);
+          }
+        }
+      });
+
+      forceEndVoteBtn.addEventListener('click', async () => {
+        const result = await Swal.fire({
+          title: 'Forcer la fin du vote?',
+          text: "Êtes-vous sûr de vouloir forcer la fin du vote?",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6',
+          confirmButtonText: 'Oui, forcer!',
+        });
+
+        if (result.isConfirmed) {
+          try {
+            const response = await fetch('/voting-sessions/set-voted', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            });
+            const result = await response.json();
+            if (response.ok) {
+              Swal.fire('Succès', result.message || 'Le vote a été terminé.', 'success');
+              await fetchAndUpdatePropositionStatus();
+            } else {
+              Swal.fire('Erreur', result.error || 'Erreur lors de la tentative de forcer la fin du vote.', 'error');
+            }
+          } catch (error) {
+            console.error('Erreur lors de la requête pour forcer la fin du vote :', error);
+          }
+        }
+      });
+
       const startSessionButton = document.getElementById('startSessionButton');
       const endSessionButton = document.getElementById('endSessionButton');
       const deleteSessionButton = document.getElementById('deleteSessionButton');
@@ -37,13 +155,13 @@
       if (startSessionButton) {
         startSessionButton.addEventListener('click', () => {
           Swal.fire({
-            title: 'Are you sure?',
-            text: "This will start the voting session.",
+            title: 'Êtes-vous sûr?',
+            text: "Cela va démarrer la session de vote.",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#004d99',
             cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, start it!'
+            confirmButtonText: 'Oui, démarrez-la!'
           }).then((result) => {
             if (result.isConfirmed) {
               fetch(`/voting-sessions/${sessionId}/start`, {
@@ -51,10 +169,11 @@
                 })
                 .then(response => response.json())
                 .then(result => {
-                  Swal.fire('Success', 'Session started successfully!', 'success');
-                  location.reload();
+                  Swal.fire('Succès', 'Session démarrée avec succès!', 'success');
+                  startSessionButton.remove();
+                  fetchAndUpdatePropositionStatus();
                 })
-                .catch(() => Swal.fire('Error', 'Failed to start session.', 'error'));
+                .catch(() => Swal.fire('Erreur', 'Échec de démarrer la session.', 'error'));
             }
           });
         });
@@ -63,13 +182,13 @@
       if (endSessionButton) {
         endSessionButton.addEventListener('click', () => {
           Swal.fire({
-            title: 'Are you sure?',
-            text: "This will end the voting session.",
+            title: 'Êtes-vous sûr?',
+            text: "Cela va terminer la session de vote.",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#004d99',
             cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, end it!'
+            confirmButtonText: 'Oui, terminez-la!'
           }).then((result) => {
             if (result.isConfirmed) {
               fetch(`/voting-sessions/${sessionId}/end`, {
@@ -77,12 +196,10 @@
                 })
                 .then(response => response.json())
                 .then(result => {
-                  Swal.fire('Success', 'Session ended successfully!', 'success');
-                  setTimeout(() => {
-                    location.reload();
-                  }, 1500)
+                  Swal.fire('Succès', 'Session terminée avec succès!', 'success');
+                  fetchAndUpdatePropositionStatus(); // Mettre à jour l'état
                 })
-                .catch(() => Swal.fire('Error', 'Failed to end session.', 'error'));
+                .catch(() => Swal.fire('Erreur', 'Échec de terminer la session.', 'error'));
             }
           });
         });
@@ -91,13 +208,13 @@
       if (deleteSessionButton) {
         deleteSessionButton.addEventListener('click', () => {
           Swal.fire({
-            title: 'Are you sure?',
-            text: "This will cancel and delete the voting session.",
+            title: 'Êtes-vous sûr?',
+            text: "Cela va annuler et supprimer la session de vote.",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!'
+            confirmButtonText: 'Oui, supprimez-la!'
           }).then((result) => {
             if (result.isConfirmed) {
               fetch(`/voting-sessions/${sessionId}`, {
@@ -105,16 +222,16 @@
                 })
                 .then(response => response.json())
                 .then(result => {
-                  Swal.fire('Deleted!', 'Session has been deleted.', 'success');
-                  if (result.error) {
-                    Swal.fire('Error', 'Failed to delete session.', 'error')
-                  } else {
+                  Swal.fire('Supprimé!', 'La session a été supprimée.', 'success');
+                  if (!result.error) {
                     setTimeout(() => {
                       window.location.href = '/voting-sessions';
-                    }, 1500)
+                    }, 1500);
+                  } else {
+                    Swal.fire('Erreur', 'Échec de la suppression de la session.', 'error');
                   }
                 })
-                .catch(() => Swal.fire('Error', 'Failed to delete session.', 'error'));
+                .catch(() => Swal.fire('Erreur', 'Échec de la suppression de la session.', 'error'));
             }
           });
         });
@@ -125,7 +242,9 @@
           sortable: true,
           filter: true,
           resizable: true,
-          flex: 1
+          flex: 1,
+          sort: 'desc',
+          minWidth: 70
         },
         {
           headerName: "Nom Utilisateur",
@@ -133,7 +252,8 @@
           sortable: true,
           filter: true,
           resizable: true,
-          flex: 1.5
+          flex: 1.5,
+          minWidth: 100
         },
         {
           headerName: "Objet",
@@ -141,7 +261,8 @@
           sortable: true,
           filter: true,
           resizable: true,
-          flex: 1.5
+          flex: 1.5,
+          minWidth: 150
         },
         {
           headerName: "Description Situation Actuelle",
@@ -149,7 +270,8 @@
           sortable: true,
           filter: true,
           resizable: true,
-          flex: 3
+          flex: 3,
+          minWidth: 200
         },
         {
           headerName: "Description Amélioration Proposée",
@@ -157,16 +279,8 @@
           sortable: true,
           filter: true,
           resizable: true,
-          flex: 3
-        },
-        {
-          headerName: "Exclue",
-          field: "is_excluded",
-          sortable: true,
-          filter: true,
-          resizable: true,
-          flex: 1,
-          cellRenderer: params => params.value ? 'Oui' : 'Non'
+          flex: 3,
+          minWidth: 200
         },
         {
           headerName: "Date d'émission",
@@ -175,7 +289,8 @@
           filter: true,
           resizable: true,
           flex: 1.5,
-          valueFormatter: params => new Date(params.value).toLocaleDateString('fr-FR')
+          valueFormatter: params => new Date(params.value).toLocaleDateString('fr-FR'),
+          minWidth: 100
         },
         {
           headerName: "Note Moyenne",
@@ -184,37 +299,41 @@
           filter: true,
           resizable: true,
           flex: 1,
-          valueFormatter: params => params.value ? params.value.toFixed(2) : 'N/A'
+          valueFormatter: params => params.value ? params.value.toFixed(2) : '---',
+          minWidth: 100
         },
         {
           headerName: "Détails",
-          cellRenderer: (params) => {
-            return `<button class="button details-button" data-id="${params.data.id}">Détails</button>`;
-          },
-          flex: 2
-        }
+          cellRenderer: (params) => `<button class="button details-button" data-id="${params.data.id}">Détails</button>`,
+          minWidth: 120
+        },
       ];
-
-      const dataContainer = document.getElementById('dataContainer');
-      const rowData = JSON.parse(dataContainer.getAttribute('data-row-data'));
 
       const gridOptions = {
         columnDefs: columnDefs,
         rowData: rowData,
         pagination: true,
-        paginationPageSize: 10,
+        paginationPageSize: 20,
         domLayout: 'autoHeight',
-        suppressRowClickSelection: true
+        suppressRowClickSelection: true,
+        localeText: AG_GRID_LOCALE_FR,
       };
 
-      const eGridDiv = document.querySelector('#myGrid');
-      const grid = new agGrid.Grid(eGridDiv, gridOptions);
+      const gridDiv = document.getElementById('myGrid');
+      const grid = new agGrid.Grid(gridDiv, gridOptions);
+    })
 
-      eGridDiv.addEventListener('click', (event) => {
-        if (event.target.classList.contains('details-button')) {
-          const propositionId = event.target.getAttribute('data-id');
-          window.location.href = `/voting-sessions/proposition/${propositionId}`;
+    function highlightCurrentProposition(currentPropositionId) {
+      const rows = document.querySelectorAll('[role="row"]');
+
+      rows.forEach(row => {
+        const idCell = row.querySelector('[col-id="id"]');
+
+        if (idCell && idCell.textContent.trim() == currentPropositionId) {
+          row.classList.add('current-proposition-row');
+        } else {
+          row.classList.remove('current-proposition-row');
         }
       });
-    });
+    }
   </script>

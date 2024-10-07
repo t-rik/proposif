@@ -6,7 +6,7 @@ function checkActiveSession() {
                 if (data.sessionType === "jury") {
                     document.querySelector('.container').innerHTML = `
               <p>Une session de vote de jury est active, voulez-vous entrer ?</p>
-              <button onclick="window.location.href='/enter-jury'">Entrer</button>
+              <button onclick="window.location.href='/voting-sessions/current-proposition'">Entrer</button>
               <button onclick="history.back()">Retour</button>`;
                 } else if (data.sessionType === "user") {
                     document.querySelector('.container').innerHTML = `

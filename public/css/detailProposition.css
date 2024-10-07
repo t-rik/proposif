@@ -332,10 +332,11 @@
         margin-top: 10px;
     }
 
-    .dz-filename{
+    .dz-filename {
         position: relative;
     }
-    .dz-filename:hover{
+
+    .dz-filename:hover {
         right: 100%;
     }
 
@@ -459,6 +460,11 @@
         /* Blue focus ring */
     }
 
+    .grading-section h2{
+        margin-bottom: 20px;
+        margin-top: 100px;
+    }
+
     .grading-section {
         text-align: center;
         margin: 20px 0;
@@ -479,7 +485,6 @@
 
     .grade-label input {
         display: none;
-        /* Hide default radio */
     }
 
     .custom-radio {
@@ -497,6 +502,24 @@
     .grade-label input:checked+.custom-radio {
         background-color: #007bff;
         color: #fff;
+    }
+
+    .grade-label input:checked+.custom-radio {
+        background-color: #0056b3;
+        color: #fff;
+        border-color: #0056b3;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .grade-label input:checked:disabled {
+        border-color: #ccc;
+    }
+
+    .grade-label input:disabled+.custom-radio {
+        border-color: #ffffff;
+        color: #ccc;
+        cursor: not-allowed;
+        background-color: #ffffff;
     }
 
     .submit-button {

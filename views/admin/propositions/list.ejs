@@ -181,6 +181,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.noStyle.js"></script>
+  <script src="/localization/fr-FR.js"></script>
+
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const columnDefs = [{
@@ -259,6 +261,7 @@
           filter: true,
           resizable: true,
         },
+        localeText: AG_GRID_LOCALE_FR,
         pagination: true,
         paginationPageSize: 50,
         domLayout: 'autoHeight',

@@ -1,16 +1,3 @@
-<!DOCTYPE html>
-<html lang="fr">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vote</title>
-  <link rel="stylesheet" href="/css/detailProposition.css">
-  <script src="/js/detailProposition.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-</head>
-
-<body>
   <div class="proposition-container">
     <header class="proposition-header">
       <h1 class="proposition-title"><%= proposition.objet %></h1>
@@ -62,34 +49,18 @@
     </div>
     </section>
     <div class="grading-section">
-      <h2>Rate this Proposition</h2>
-      <form id="gradeForm" action="/voting-sessions/jury/proposition/<%= proposition.id %>/vote" method="POST" class="grade-form">
+      <h2>Évaluez cette proposition</h2>
+      <form id="gradeForm" action="/voting-sessions/proposition/<%= proposition.id %>/vote" method="POST" class="grade-form">
         <div class="radio-group">
-          <% for (let i = 1; i <= 5; i++) { %>
+          <% for (let i = 1; i <= 6; i++) { %>
           <label class="grade-label">
-            <input type="radio" name="grade" value="<%= i %>" <%= proposition.user_vote == i ? 'checked' : '' %> required>
+            <input type="radio" name="grade" value="<%= i %>" <%= userVote == i ? 'checked' : '' %> required>
             <span class="custom-radio"><%= i %></span>
           </label>
           <% } %>
         </div>
-        <button type="submit" class="submit-button">Submit Grade</button>
+        <button type="submit" class="submit-button">Soumettre</button>
       </form>
-    </div>
-
-    <div class="navigation-buttons">
-      <% if (proposition.id > firstId) { %>
-      <form action="/voting-sessions/jury/vote/previous" method="get" class="nav-form">
-        <input type="hidden" name="id" value="<%= proposition.id %>">
-        <button type="submit" class="nav-button">Previous</button>
-      </form>
-      <% } %>
-
-      <% if (proposition.id < lastId) { %>
-      <form action="/voting-sessions/jury/vote/next" method="get" class="nav-form">
-        <input type="hidden" name="id" value="<%= proposition.id %>">
-        <button type="submit" class="nav-button">Next</button>
-      </form>
-      <% } %>
     </div>
     <div id="imageModal" class="modal">
       <span class="modal-close" onclick="closeModal()">&times;</span>
@@ -97,76 +68,111 @@
       <a id="downloadLink" class="btn-download" download>Télécharger</a>
     </div>
     <script>
-      document.getElementById('gradeForm').onsubmit = function(event) {
-        event.preventDefault();
+      document.addEventListener('DOMContentLoaded', () => {
+        const propositionId = '<%= proposition.id %>';
+        const submitButton = document.querySelector(".submit-button");
 
-        const formData = new FormData(this);
-        fetch(this.action, {
-            method: this.method,
-            body: formData,
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.error) {
+        function checkPropositionStatus() {
+          fetch(`/voting-sessions/proposition-status/${propositionId}`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.error) {
+                console.error('Erreur lors de la récupération du statut de la proposition:', data.error);
+                return;
+              }
+
+              if (!data.is_current) {
+                location.reload();
+                XMLDocument
+                return;
+              }
+
+              if (data.is_voted) {
+                const voteInputs = document.querySelectorAll('.grade-form input[type="radio"]');
+                const isAlreadyDisabled = Array.from(voteInputs).some(input => input.disabled);
+                submitButton.remove();
+                if (!isAlreadyDisabled) {
+                  voteInputs.forEach(input => input.disabled = true);
+
+                  Swal.fire({
+                    icon: data.is_validated ? 'success' : 'warning',
+                    title: 'Vote Terminé',
+                    html: `
+                  <h3>Note moyenne: <strong>${data.average_grade.toFixed(2)}</strong></h3>
+                  <h3>Statut: <strong>${data.is_validated ? 'Retenu' : 'Non Retenu'}</strong></h3>
+                  `,
+                    confirmButtonText: 'OK'
+                  });
+                }
+              }
+            })
+            .catch(error => {
+              console.error('Erreur lors de la récupération de l\'état de la proposition:', error);
+            });
+        }
+        checkPropositionStatus()
+        const statusCheckInterval = setInterval(checkPropositionStatus, 3000);
+
+        document.getElementById('gradeForm').onsubmit = function(event) {
+          event.preventDefault();
+
+          const formData = new FormData(this);
+          fetch(this.action, {
+              method: this.method,
+              body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.error) {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Erreur',
+                  text: data.error,
+                });
+              } else {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Succès',
+                  text: 'Votre évaluation a été soumise avec succès.',
+                })
+              }
+            })
+            .catch(error => {
+              console.error('Erreur lors de l\'envoi de la note:', error);
               Swal.fire({
                 icon: 'error',
                 title: 'Erreur',
-                text: data.error,
+                text: 'Une erreur est survenue. Veuillez réessayer.',
               });
-            } else {
-              Swal.fire({
-                icon: 'success',
-                title: 'Succès',
-                text: 'Votre évaluation a été soumise avec succès.',
-              })
-            }
-          })
-          .catch(error => {
-            console.error('Erreur lors de l\'envoi de la note:', error);
-            Swal.fire({
-              icon: 'error',
-              title: 'Erreur',
-              text: 'Une erreur est survenue. Veuillez réessayer.',
             });
-          });
-      };
+        };
 
-      function refreshGallery(type) {
-        const propositionId = '<%= proposition.id %>';        
-        console.log(propositionId);
-        
-        fetch(`/images/proposition/${propositionId}?type=${type}`)
-          .then(response => {console.log(response); return response.json()})
-          .then(data => {
-            console.log('test');
-            
-            console.log(data);
+        function refreshGallery(type) {
+          const propositionId = '<%= proposition.id %>';
 
-            if (data.success) {
-              const galleryContainer = document.querySelector(`.image-gallery[data-type="${type}"]`);
-              if (data.images.length > 0) {
-                galleryContainer.innerHTML = data.images.map(image => `
-      <div class="image-wrapper" onclick="openModal('/images/${propositionId}/${type}/${image.filename}')">
-        <img src="/images/${propositionId}/${type}/${image.filename}" alt="Image ${type === 'before' ? 'Avant' : 'Après'}" class="image-thumbnail">
-      </div>
-      `).join('');
+          fetch(`/images/proposition/${propositionId}?type=${type}`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                const galleryContainer = document.querySelector(`.image-gallery[data-type="${type}"]`);
+                if (data.images.length > 0) {
+                  galleryContainer.innerHTML = data.images.map(image => `
+    <div class="image-wrapper" onclick="openModal('/images/${propositionId}/${type}/${image.filename}')">
+      <img src="/images/${propositionId}/${type}/${image.filename}" alt="Image ${type === 'before' ? 'Avant' : 'Après'}" class="image-thumbnail">
+    </div>
+    `).join('');
+                } else {
+                  galleryContainer.innerHTML = `<p class="no-images-message">Aucune image "${type === 'before' ? 'Avant' : 'Après'}" disponible.</p>`;
+                }
               } else {
-                galleryContainer.innerHTML = `<p class="no-images-message">Aucune image "${type === 'before' ? 'Avant' : 'Après'}" disponible.</p>`;
+                console.error('Error fetching images:', data.message);
               }
-            } else {
-              console.error('Error fetching images:', data.message);
-            }
-          })
-          .catch(error => {
-            console.error('Error updating image gallery:', error);
-          });
-      }
-
-      document.addEventListener('DOMContentLoaded', () => {
+            })
+            .catch(error => {
+              console.error('Error updating image gallery:', error);
+            });
+        }
         refreshGallery('before');
         refreshGallery('after');
       });
     </script>
-</body>
-
-</html>

@@ -190,129 +190,213 @@ router.delete('/:sessionId', async (req, res) => {
     }
 });
 
-router.get('/proposition/:id', async (req, res) => {
+router.get('/proposition-status/:id', async (req, res) => {
     const propositionId = req.params.id;
+
     try {
-        const [proposition] = await db.query(`
-            SELECT p.*, 
-                   CONCAT(u.first_name, ' ', u.last_name) AS full_name, 
-                   ps.voting_session_id
-            FROM propositions p
-            LEFT JOIN users u ON p.user_id = u.id
-            LEFT JOIN proposition_status ps ON ps.proposition_id = p.id
-            WHERE p.id = ?
+        const [propositionStatus] = await db.query(`
+            SELECT 
+                ps.is_voted, 
+                ps.voting_completed,
+                ps.average_grade,
+                ps.is_validated,
+                CASE
+                    WHEN ps.proposition_id = (
+                        SELECT MIN(proposition_id)
+                        FROM proposition_status
+                        WHERE voting_completed = 0
+                    ) THEN 1
+                    ELSE 0
+                END AS is_current
+            FROM proposition_status ps
+            WHERE ps.proposition_id = ?
+            LIMIT 1
         `, [propositionId]);
 
+        if (!propositionStatus) {
+            return res.status(404).json({ message: 'Proposition non trouvée ou hors de la session de vote actuelle.' });
+        }
+        
+        res.status(200).json({
+            is_voted: propositionStatus[0].is_voted,
+            voting_completed: propositionStatus[0].voting_completed,
+            is_current: propositionStatus[0].is_current,
+            average_grade: propositionStatus[0].average_grade,
+            is_validated: propositionStatus[0].is_validated
+        });
+    } catch (error) {
+        console.error(`Erreur lors de la récupération de l'état de la proposition : ${error.message}`);
+        res.status(500).json({ error: 'Erreur interne du serveur : ' + error.message });
+    }
+});
+
+
+
+router.get('/current-proposition-id', async (req, res) => {
+    try {
+        const [proposition] = await db.query(`
+            SELECT ps.proposition_id
+            FROM proposition_status ps
+            JOIN voting_sessions vs ON ps.voting_session_id = vs.id
+            WHERE vs.is_active = 1 AND vs.started = 1 AND vs.ended = 0
+            AND ps.voting_completed = 0
+            ORDER BY ps.proposition_id ASC
+            LIMIT 1
+        `);
+
         if (proposition.length === 0) {
-            return res.status(404).json({ error: 'Proposition not found' });
+            return res.status(404).json({ message: 'Aucune proposition disponible pour le vote.' });
         }
 
+        res.status(200).json({ propositionId: proposition[0].proposition_id });
+    } catch (error) {
+        console.error(`Erreur lors de la récupération de l'ID de la proposition : ${error.message}`);
+        res.status(500).json({ error: 'Erreur interne du serveur : ' + error.message });
+    }
+});
+
+
+router.get('/current-proposition', async (req, res) => {
+    const userId = req.session.userId;
+    try {
+        const [proposition] = await db.query(`
+            SELECT ps.*, p.*, 
+                   v.vote_value AS user_vote
+            FROM proposition_status ps
+            JOIN propositions p ON ps.proposition_id = p.id
+            JOIN voting_sessions vs ON ps.voting_session_id = vs.id
+            LEFT JOIN votes v ON v.proposition_id = ps.proposition_id AND v.user_id = ?
+            WHERE vs.is_active = 1 
+              AND vs.started = 1 
+              AND vs.ended = 0
+              AND ps.voting_completed = 0
+            ORDER BY ps.proposition_id ASC
+            LIMIT 1
+        `, [userId]);
+
+        if (proposition.length === 0) {
+            return res.status(404).json({ message: 'Aucune proposition en cours de vote.' });
+        }
+        
         res.render('layouts/main', {
             userId: req.session.userId,
             isAdmin: req.session.isAdmin,
             isJury: req.session.isJury,
+
             title: proposition[0].objet,
             proposition: proposition[0],
-            votingSessionId: proposition[0].voting_session_id,
+            userVote: proposition[0].user_vote,
             css: ['detailProposition.css'],
             js: ['detailProposition.js'],
-            view: '../admin/propositions/details.ejs'
+            view: '../jury/proposition'
         });
     } catch (error) {
-        console.error('Database error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error(`Erreur lors de la récupération de la proposition : ${error.message}`);
+        res.status(500).send('Erreur interne du serveur');
     }
 });
 
-router.get('/jury/vote/:direction?', async (req, res) => {
-    const userId = req.session.userId;
 
-    const [activeSession] = await db.query('SELECT id FROM voting_sessions WHERE is_active = 1 and started = 1');
-    if (activeSession.length === 0) {
-        return res.status(400).json({ message: 'No active session found.' });
-    }
-    const activeSessionId = activeSession[0].id;
 
-    const currentPropositionId = parseInt(req.query.id) || 0;
-    const direction = req.params.direction;
-
+//complete the vote on a proposition
+router.post('/set-voted', async (req, res) => {
     try {
-        let operator;
-        let order;
-        if (direction === 'previous') {
-            operator = '<';
-            order = 'DESC';
-        } else {
-            operator = '>';
-            order = 'ASC';
+        // Étape 1 : Obtenir l'ID de la proposition à mettre à jour
+        const [result] = await db.query(`
+            SELECT MIN(proposition_id) AS proposition_id
+            FROM proposition_status ps
+            JOIN voting_sessions vs ON ps.voting_session_id = vs.id
+            WHERE vs.is_active = 1 AND vs.started = 1 AND vs.ended = 0
+              AND ps.is_voted = 0 AND ps.voting_completed = 0
+        `);
+
+        if (result.length === 0) {
+            return res.status(404).json({ message: 'Aucune proposition disponible pour mettre fin au vote.' });
         }
 
-        const [proposition] = await db.query(`
-            SELECT p.*, CONCAT(u.first_name, ' ', u.last_name) AS full_name, 
-                   ps.average_grade, v.vote_value AS user_vote
-            FROM propositions p
-            LEFT JOIN users u ON p.user_id = u.id
-            LEFT JOIN proposition_status ps ON p.id = ps.proposition_id AND ps.voting_session_id = ?
-            LEFT JOIN votes v ON p.id = v.proposition_id AND v.user_id = ?
-            WHERE p.id ${operator} ? AND p.is_excluded = 0 AND ps.voting_session_id = ?
-            ORDER BY p.id ${order}
-            LIMIT 1
-        `, [activeSessionId, userId, currentPropositionId, activeSessionId]);
+        const propositionId = result[0].proposition_id;
 
-        if (proposition.length === 0) {
-            return res.status(404).json({ message: 'No more propositions available.' });
-        }
+        // Étape 2 : Mettre à jour la proposition pour marquer le vote comme terminé
+        await db.query(`
+            UPDATE proposition_status
+            SET is_voted = 1
+            WHERE proposition_id = ?
+        `, [propositionId]);
 
-        const [minMaxPropositions] = await db.query(`
-            SELECT MIN(p.id) AS first_id, MAX(p.id) AS last_id 
-            FROM propositions p
-            JOIN proposition_status ps ON p.id = ps.proposition_id
-            WHERE ps.voting_session_id = ? AND p.is_excluded = 0
-        `, [activeSessionId]);
-
-        const firstId = minMaxPropositions[0].first_id;
-        const lastId = minMaxPropositions[0].last_id;
-
-        res.render('jury/proposition.ejs', {
-            userId: req.session.userId,
-            isAdmin: req.session.isAdmin,
-            isJury: req.session.isJury,
-            title: proposition[0].objet,
-            proposition: {
-                ...proposition[0],
-                user_vote: proposition[0].user_vote || null,
-            },
-            firstId,
-            lastId
-        });
+        res.status(200).json({ message: 'Le vote a été terminé avec succès.' });
     } catch (error) {
-        console.error('Database error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Erreur lors de la tentative de forcer la fin du vote :', error);
+        res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
 });
 
-router.post('/jury/proposition/:id/vote', upload.none(), async (req, res) => {
+//move to next proposition
+router.post('/next', async (req, res) => {
+    try {
+        // Étape 1 : Obtenir l'ID de la proposition à mettre à jour
+        const [result] = await db.query(`
+            SELECT MIN(proposition_id) AS proposition_id
+            FROM proposition_status ps
+            JOIN voting_sessions vs ON ps.voting_session_id = vs.id
+            WHERE vs.is_active = 1 AND vs.started = 1 AND vs.ended = 0
+              AND ps.is_voted = 1 AND ps.voting_completed = 0
+        `);
+
+        if (result.length === 0) {
+            return res.status(404).json({ message: 'Aucune proposition disponible pour mettre fin au vote.' });
+        }
+
+        const propositionId = result[0].proposition_id;
+
+        // Étape 2 : Mettre à jour la proposition pour marquer le vote comme terminé
+        await db.query(`
+            UPDATE proposition_status
+            SET voting_completed = 1
+            WHERE proposition_id = ?
+        `, [propositionId]);
+
+        res.status(200).json({ message: 'Le vote a été terminé avec succès.' });
+    } catch (error) {
+        console.error('Erreur lors de la tentative de forcer la fin du vote :', error);
+        res.status(500).json({ error: 'Erreur interne du serveur.' });
+    }
+});
+
+
+//ajouter ou modifier vote
+router.post('/proposition/:id/vote', upload.none(), async (req, res) => {
     const propositionId = req.params.id;
     const { grade } = req.body;
     const userId = req.session.userId;
 
     try {
+        const isJury = req.session.isJury;
+
+        // Vérification de la session de vote active
         const [activeSession] = await db.query(`
-            SELECT id FROM voting_sessions WHERE is_active = 1 and started = 1
+            SELECT id, type FROM voting_sessions WHERE is_active = 1 AND started = 1 AND ended = 0
         `);
 
         if (activeSession.length === 0) {
-            return res.status(400).json({ error: 'No active voting session found.' });
+            return res.status(400).json({ error: 'Aucune session de vote active trouvée.' });
         }
 
         const activeSessionId = activeSession[0].id;
+        const sessionType = activeSession[0].session_type;
 
+        // Vérification si l'utilisateur fait partie du jury pour une session de type "jury"
+        if (sessionType === 'jury' && !isJury) {
+            return res.status(403).json({ error: 'Vous n\'êtes pas autorisé à voter dans cette session.' });
+        }
+
+        // Vérification si un vote existe déjà pour cette proposition et cet utilisateur
         const [existingVote] = await db.query(`
             SELECT * FROM votes
             WHERE session_id = ? AND proposition_id = ? AND user_id = ?`,
             [activeSessionId, propositionId, userId]
         );
 
+        // Mise à jour ou insertion du vote selon qu'il existe ou non
         if (existingVote.length > 0) {
             await db.query(`
                 UPDATE votes
@@ -321,7 +405,7 @@ router.post('/jury/proposition/:id/vote', upload.none(), async (req, res) => {
                 [grade, activeSessionId, propositionId, userId]
             );
 
-            return res.status(200).json({ message: 'Vote updated successfully.' });
+            return res.status(200).json({ message: 'Votre vote a été mis à jour avec succès.' });
         } else {
             await db.query(`
                 INSERT INTO votes (session_id, proposition_id, user_id, vote_value)
@@ -329,13 +413,15 @@ router.post('/jury/proposition/:id/vote', upload.none(), async (req, res) => {
                 [activeSessionId, propositionId, userId, grade]
             );
 
-            return res.status(200).json({ message: 'Vote submitted successfully.' });
+            return res.status(200).json({ message: 'Votre vote a été soumis avec succès.' });
         }
+
     } catch (error) {
-        console.error('Database error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Erreur de base de données:', error);
+        res.status(500).json({ error: 'Erreur interne du serveur.' });
     }
 });
+
 
 router.get('/statut-vote', function (req, res) {
     res.render('layouts/main', {
@@ -349,6 +435,7 @@ router.get('/statut-vote', function (req, res) {
     });
 });
 
+//verifier si il y'a une session de vote actif
 router.get('/check-active-session', async (req, res) => {
     try {
         const [rows] = await db.query(`

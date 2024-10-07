@@ -5,6 +5,8 @@
 
     <div id="sessionsGrid" class="ag-theme-alpine" style="height: 500px; width: 100%; margin-top: 20px;"></div>
     <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.noStyle.js"></script>
+      <script src="/localization/fr-FR.js"></script>
+
     <script>
       const sessions = <%- JSON.stringify(sessions) %>;
 
@@ -66,7 +68,7 @@
         components: {
           buttonRenderer: buttonRenderer
         },
-        paginationPageSize: 10,
+        paginationPageSize: 20,
         domLayout: 'autoHeight'
       };
 
@@ -75,20 +77,21 @@
 
       document.getElementById('initSessionBtn').addEventListener('click', () => {
         Swal.fire({
-          title: 'Initialize Voting Session',
+          title: 'Initialiser Session de Vote',
           html: `
                   <form id="initSessionForm">
                       <div class="form-group">
-                          <label for="votingType">Voting Type</label>
+                          <label for="votingType">type vote</label>
                           <select id="votingType" name="type" class="form-control">
-                              <option value="jury">Jury Voting Session</option>
-                              <option value="user">User Voting Session</option>
+                              <option value="jury">Jury</option>
+                              <option value="user">Global</option>
                           </select>
                       </div>
                   </form>
                 `,
           showCancelButton: true,
-          confirmButtonText: 'Initialize',
+          confirmButtonText: 'Initialiser',
+          cancelButtonText: 'Annuler',
           preConfirm: () => {
             const votingType = document.getElementById('votingType').value;
             return {
