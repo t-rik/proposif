@@ -6,7 +6,7 @@ const checkUserOwnership = require('../middleware/checkUserOwnership');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-
+// const faker = require('faker');
 
 router.get('/', async (req, res) => {
   try {
@@ -97,6 +97,53 @@ router.post('/add', upload.none(), async (req, res) => {
 
     res.json({ success: true, propositionId: result.insertId });
   } catch (error) {
+    console.log(error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.get('/fill', upload.none(), async (req, res) => {
+  const user_id = req.session.userId;
+
+  try {
+    await db.query('START TRANSACTION');
+
+    for (let i = 0; i < 1000; i++) {
+      const objet = faker.lorem.words(20);
+      const description_situation_actuelle = faker.lorem.paragraphs(5);
+      const description_amelioration_proposee = faker.lorem.paragraphs(5);
+      const impact_economique = faker.datatype.number({ min: 0, max: 1 });
+      const impact_technique = faker.datatype.number({ min: 0, max: 1 });
+      const impact_formation = faker.datatype.number({ min: 0, max: 1 });
+      const impact_fonctionnement = faker.datatype.number({ min: 0, max: 1 });
+      const statut = 'non soldee';
+
+      // Insert the proposition
+      await db.query(
+        `INSERT INTO propositions 
+          (objet, description_situation_actuelle, description_amelioration_proposee, user_id, impact_economique, impact_technique, impact_formation, impact_fonctionnement, statut) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          objet,
+          description_situation_actuelle,
+          description_amelioration_proposee,
+          user_id,
+          impact_economique,
+          impact_technique,
+          impact_formation,
+          impact_fonctionnement,
+          statut
+        ]
+      );
+    }
+
+    // Commit transaction after all insertions
+    await db.query('COMMIT');
+
+    res.json({ success: true, message: '1000 propositions added successfully.' });
+  } catch (error) {
+    // Rollback transaction in case of error
+    await db.query('ROLLBACK');
     console.log(error.message);
     res.status(500).json({ success: false, message: error.message });
   }

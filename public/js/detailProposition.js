@@ -13,8 +13,7 @@ function confirmDelete(propositionId) {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        const sessionId = '<%= votingSessionId %>';
-                        window.location.href = `http://localhost:3000/voting-sessions/${sessionId}`;
+                        window.history.back();
                     } else {
                         Swal.fire("Erreur", data.message, "error");
                     }

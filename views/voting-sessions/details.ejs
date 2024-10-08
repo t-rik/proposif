@@ -44,7 +44,7 @@
   </style>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      <% if (session.is_active) { %>;
+      <% if (session.started) { %>;
       const nextPropositionBtn = document.getElementById('next-proposition-btn');
       const forceEndVoteBtn = document.getElementById('force-end-vote-btn');
       var currentPropositionId = null;
@@ -63,8 +63,6 @@
             const statusResult = await statusResponse.json();
 
             if (statusResponse.ok) {
-              console.log(statusResult.is_last);
-
               if (statusResult.is_last == 1) {
                 console.log('done');
 
@@ -194,6 +192,21 @@
           }
         }
       });
+
+      function highlightCurrentProposition(currentPropositionId) {
+        const rows = document.querySelectorAll('[role="row"]');
+
+        rows.forEach(row => {
+          const idCell = row.querySelector('[col-id="id"]');
+
+          if (idCell && idCell.textContent.trim() == currentPropositionId) {
+            row.classList.add('current-proposition-row');
+          } else {
+            row.classList.remove('current-proposition-row');
+          }
+        });
+      }
+
       <% } %>;
 
       const dataContainer = document.getElementById('dataContainer');
@@ -272,7 +285,7 @@
           filter: true,
           resizable: true,
           flex: 1,
-          sort: 'desc',
+          sort: 'asc',
           minWidth: 70
         },
         {
@@ -363,18 +376,4 @@
       const gridDiv = document.getElementById('myGrid');
       const grid = new agGrid.Grid(gridDiv, gridOptions);
     })
-
-    function highlightCurrentProposition(currentPropositionId) {
-      const rows = document.querySelectorAll('[role="row"]');
-
-      rows.forEach(row => {
-        const idCell = row.querySelector('[col-id="id"]');
-
-        if (idCell && idCell.textContent.trim() == currentPropositionId) {
-          row.classList.add('current-proposition-row');
-        } else {
-          row.classList.remove('current-proposition-row');
-        }
-      });
-    }
   </script>
