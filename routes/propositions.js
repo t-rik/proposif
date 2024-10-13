@@ -6,7 +6,8 @@ const checkUserOwnership = require('../middleware/checkUserOwnership');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-// const faker = require('faker');
+const Chance = require('chance');
+const chance = new Chance();
 
 router.get('/', async (req, res) => {
   try {
@@ -102,20 +103,22 @@ router.post('/add', upload.none(), async (req, res) => {
   }
 });
 
-router.get('/fill', upload.none(), async (req, res) => {
+router.get('/fill/:n', upload.none(), async (req, res) => {
   const user_id = req.session.userId;
+  const n = req.params.n;
 
   try {
+    // Begin transaction
     await db.query('START TRANSACTION');
 
-    for (let i = 0; i < 1000; i++) {
-      const objet = faker.lorem.words(20);
-      const description_situation_actuelle = faker.lorem.paragraphs(5);
-      const description_amelioration_proposee = faker.lorem.paragraphs(5);
-      const impact_economique = faker.datatype.number({ min: 0, max: 1 });
-      const impact_technique = faker.datatype.number({ min: 0, max: 1 });
-      const impact_formation = faker.datatype.number({ min: 0, max: 1 });
-      const impact_fonctionnement = faker.datatype.number({ min: 0, max: 1 });
+    for (let i = 0; i < n; i++) {
+      const objet = chance.sentence({ words: 20 }); // Random sentence (approx 100 characters)
+      const description_situation_actuelle = chance.paragraph({ sentences: 5 }); // Random paragraph (approx 500 characters)
+      const description_amelioration_proposee = chance.paragraph({ sentences: 5 }); // Random paragraph (approx 500 characters)
+      const impact_economique = chance.integer({ min: 0, max: 100 });
+      const impact_technique = chance.integer({ min: 0, max: 100 });
+      const impact_formation = chance.integer({ min: 0, max: 100 });
+      const impact_fonctionnement = chance.integer({ min: 0, max: 100 });
       const statut = 'non soldee';
 
       // Insert the proposition
@@ -140,7 +143,7 @@ router.get('/fill', upload.none(), async (req, res) => {
     // Commit transaction after all insertions
     await db.query('COMMIT');
 
-    res.json({ success: true, message: '1000 propositions added successfully.' });
+    res.json({ success: true, message: `${n} propositions added successfully.` });
   } catch (error) {
     // Rollback transaction in case of error
     await db.query('ROLLBACK');

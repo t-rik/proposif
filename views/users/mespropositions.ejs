@@ -124,13 +124,10 @@
       const viewDetailsButton = document.getElementById('viewDetailsButton');
 
       function escapeHtml(text) {
-        return text.replace(/[&<>"']/g, match => {
+        return text.replace(/[<>]/g, match => {
           const map = {
-            '&': '&amp;',
             '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
+            '>': '&gt;'
           };
           return map[match];
         });
@@ -139,7 +136,7 @@
       function showRowDetails(data) {
         rowDetails.innerHTML = `
           <p><strong>ID:</strong> ${data.id}</p>
-          <p><strong>Objet:</strong> ${data.objet}</p>
+          <p><strong>Objet:</strong> ${escapeHtml(data.objet)}</p>
           <p><strong>Situation Actuelle:</strong> ${escapeHtml(data.description_situation_actuelle)}</p>
           <p><strong>Amélioration Proposée:</strong> ${escapeHtml(data.description_amelioration_proposee)}</p>
           <p><strong>Date:</strong> ${new Date(data.date_emission).toLocaleDateString('fr-FR')}</p>

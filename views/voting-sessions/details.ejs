@@ -8,17 +8,24 @@
       <p><strong>Date de début :</strong> <%= session.start_time ? new Date(session.start_time).toLocaleString('fr-FR') : 'Non démarrée' %></p>
       <p><strong>Date de fin :</strong> <%= session.end_time ? new Date(session.end_time).toLocaleString('fr-FR') : 'Non terminée' %></p>
     </div>
-
     <div class="btncontainer">
+      <% if (session.started && isAdmin && session.type == 'jury') { %>
+
       <div class="extra-btns">
         <button id="next-proposition-btn" class="button btn-primary" style="display: none;">Proposition suivante</button>
         <button id="force-end-vote-btn" class="button danger-btn" style="display: none;">Forcer fin vote</button>
       </div>
+      <% } %>
       <% if (!session.started) { %>
       <button class="button btn-primary" id="startSessionButton">Demarrer session</button>
       <% } %>
-
+      <% if (session.started && session.is_active && session.type == 'user') { %>
+      <button class="button btn-primary" id="endSessionButton">Terminer session</button>
+      <% } %>
+      <% if (isAdmin) { %>
       <button class="button danger-btn" id="deleteSessionButton">Annuler Session</button>
+      <% } %>
+
     </div>
 
     <div id="myGrid" class="ag-theme-alpine"></div>
@@ -44,7 +51,7 @@
   </style>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      <% if (session.started) { %>;
+      <% if (session.started && !session.ended && session.type == 'jury') { %>;
       const nextPropositionBtn = document.getElementById('next-proposition-btn');
       const forceEndVoteBtn = document.getElementById('force-end-vote-btn');
       var currentPropositionId = null;
@@ -84,23 +91,6 @@
           console.error('Erreur lors de la requête pour vérifier l\'état des propositions :', error);
         }
         updateGrades();
-      }
-
-      function updateGrades() {
-        fetch('/voting-sessions/current-session/grades')
-          .then(response => response.json())
-          .then(data => {
-            data.forEach(item => {
-              gridOptions.api.forEachNode(rowNode => {
-                if (rowNode.data.id === item.proposition_id) {
-                  rowNode.setDataValue('average_grade', item.average_grade);
-                }
-              });
-            });
-          })
-          .catch(error => {
-            console.error('Erreur lors de la mise à jour des notes:', error);
-          });
       }
       fetchAndUpdatePropositionStatus();
       setInterval(fetchAndUpdatePropositionStatus, 2000);
@@ -209,6 +199,27 @@
 
       <% } %>;
 
+      <% if (session.started && !session.ended) { %>;
+      function updateGrades() {
+        fetch('/voting-sessions/current-session/grades')
+          .then(response => response.json())
+          .then(data => {
+            data.forEach(item => {
+              gridOptions.api.forEachNode(rowNode => {
+                if (rowNode.data.id === item.proposition_id) {
+                  rowNode.setDataValue('average_grade', item.average_grade);
+                }
+              });
+            });
+          })
+          .catch(error => {
+            console.error('Erreur lors de la mise à jour des notes:', error);
+          });
+      }
+      updateGrades();
+      setInterval(updateGrades, 2000);
+      <% } %>;
+
       const dataContainer = document.getElementById('dataContainer');
       const rowData = JSON.parse(dataContainer.getAttribute('data-row-data'));
 
@@ -242,6 +253,34 @@
                   }, 1000)
                 })
                 .catch(() => Swal.fire('Erreur', 'Échec de démarrer la session.', 'error'));
+            }
+          });
+        });
+      }
+
+      if (endSessionButton) {
+        endSessionButton.addEventListener('click', () => {
+          Swal.fire({
+            title: 'Êtes-vous sûr?',
+            text: "Cela va terminer la session de vote.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#004d99',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Oui, terminez-la!'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              fetch(`/voting-sessions/${sessionId}/end`, {
+                  method: 'POST'
+                })
+                .then(response => response.json())
+                .then(result => {
+                  Swal.fire('Succès', 'Session terminée avec succès!', 'success');
+                  setTimeout(() => {
+                    location.reload();
+                  }, 1500)
+                })
+                .catch(() => Swal.fire('Erreur', 'Échec de terminer la session.', 'error'));
             }
           });
         });
