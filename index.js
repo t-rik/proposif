@@ -4,6 +4,11 @@ const flash = require('connect-flash');
 const bodyParser = require('body-parser');
 const path = require('path');
 const MySQLStore = require('express-mysql-session')(session);
+const db = require('./config/db');
+const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
+const fs = require('fs');
+
 
 const app = express();
 const port = 3000;
@@ -44,7 +49,7 @@ app.use(session({
   saveUninitialized: true,
   store: sessionStore,
   cookie: {
-    maxAge: 3 * 60 * 60 * 1000  
+    maxAge: 3 * 60 * 60 * 1000
   }
 }));
 app.use(flash());
@@ -65,8 +70,8 @@ const fonctionsRoutes = require('./routes/functions');
 const { router: authRoutes, isAuthenticated } = require('./routes/auth');
 const isJury = require('./middleware/checkUserJury')
 
-app.use('/propositions', isAuthenticated,propositionRoutes);
-app.use('/voting-sessions', isAuthenticated,votingSessionRoutes);
+app.use('/propositions', isAuthenticated, propositionRoutes);
+app.use('/voting-sessions', isAuthenticated, votingSessionRoutes);
 app.use('/images', isAuthenticated, imageRoutes);
 app.use('/users', isAuthenticated, userRoutes);
 app.use('/functions', isAuthenticated, fonctionsRoutes);

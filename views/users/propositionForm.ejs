@@ -42,10 +42,12 @@
         <input type="radio" name="statut" value="en cours">
         <span>En Cours</span>
       </label>
+      <% if(isAdmin) { %>
       <label>
         <input type="radio" name="statut" value="soldee">
         <span>Soldée</span>
       </label>
+      <% } %>
     </div>
   </div>
 

@@ -3,7 +3,7 @@
 
     <div id="myGrid" class="ag-theme-alpine"></div>
 
-    <div id="dataContainer" data-row-data='<%= JSON.stringify(propositions).replace(/'/g, "&#39;") %>' style="display: none;"></div>
+    <div id="dataContainer" data-row-data='<%= JSON.stringify(propositions).replace(/[<>]/g, match => {const map = {  '<': '&lt;',  '>': '&gt;'}}); %>' style="display: none;"></div>
 
     <div id="myModal" class="modal">
       <div class="modal-content">

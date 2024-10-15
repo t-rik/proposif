@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const submitVoteBtn = document.getElementById('submit-vote-btn');
     let currentIndex = 0;
     const propositions = JSON.parse(document.getElementById('propositions-data').value);
     const totalPropositions = propositions.length;
@@ -7,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderProposition(index) {
         disableUsed(index);
+        checkNoVotes();
         const proposition = propositions[index];
         document.getElementById('pagination').innerText = `${index + 1}/${totalPropositions}`;
         document.getElementById('proposition-objet').innerText = proposition.objet;
@@ -64,7 +66,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function checkNoVotes() {
+        disabled = !votes.some(value => value !== null);
+        console.log(disabled);
 
+        submitVoteBtn.disabled = disabled;
+    }
 
     renderProposition(currentIndex);
 
@@ -88,10 +95,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('submit-vote-btn').addEventListener('click', async () => {
+    submitVoteBtn.addEventListener('click', async () => {
         const voteValue = document.querySelector('input[name="grade"]:checked')?.value;
         votes[currentIndex] = voteValue ? parseInt(voteValue) : null;
-
+        console.log(votes);
+        
         const filteredVotes = propositions
             .map((proposition, index) => ({
                 propositionId: proposition.id,
@@ -123,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Erreur lors de la soumission:', error);
         }
     });
+
     document.querySelectorAll('.grade').forEach(radio => {
         radio.addEventListener('click', function (e) {
             e.preventDefault();
@@ -132,8 +141,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     this.checked = true;
                 }
-            }, 0)
+                const voteValue = document.querySelector('input[name="grade"]:checked')?.value;
+                votes[currentIndex] = voteValue ? parseInt(voteValue) : null;
+                checkNoVotes()
 
+            }, 0)
         });
     });
 

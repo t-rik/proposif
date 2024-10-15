@@ -4,8 +4,7 @@
     </div>
 
     <div id="sessionsGrid" class="ag-theme-alpine" style="height: 500px; width: 100%; margin-top: 20px;"></div>
-    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.noStyle.js"></script>
-      <script src="/localization/fr-FR.js"></script>
+    <script src="/localization/fr-FR.js"></script>
 
     <script>
       const sessions = <%- JSON.stringify(sessions) %>;
@@ -59,6 +58,7 @@
       const gridOptions = {
         columnDefs: columnDefs,
         rowData: sessions,
+        localeText: AG_GRID_LOCALE_FR,
         defaultColDef: {
           resizable: true,
           flex: 1,

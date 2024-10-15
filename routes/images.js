@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const upload = require('../config/uploadConfig');
-// const checkUserOwnership = require('../middleware/checkUserOwnership');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');

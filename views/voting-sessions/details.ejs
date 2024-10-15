@@ -9,13 +9,17 @@
       <p><strong>Date de fin :</strong> <%= session.end_time ? new Date(session.end_time).toLocaleString('fr-FR') : 'Non terminée' %></p>
     </div>
     <div class="btncontainer">
-      <% if (session.started && isAdmin && session.type == 'jury') { %>
-
       <div class="extra-btns">
+
+        <% if (session.started && isAdmin && session.type == 'jury') { %>
         <button id="next-proposition-btn" class="button btn-primary" style="display: none;">Proposition suivante</button>
         <button id="force-end-vote-btn" class="button danger-btn" style="display: none;">Forcer fin vote</button>
+        <% } %>
+        <% if (session.ended && isAdmin && session.type == 'user') { %>
+          <a href="<%- sessionId %>/resultats-votes-global" class="button btn-primary">Resultats</a>
+        <% } %>
+
       </div>
-      <% } %>
       <% if (!session.started) { %>
       <button class="button btn-primary" id="startSessionButton">Demarrer session</button>
       <% } %>
@@ -30,25 +34,10 @@
 
     <div id="myGrid" class="ag-theme-alpine"></div>
 
-    <div id="dataContainer" data-row-data='<%= JSON.stringify(propositions).replace(/'/g, "&#39;") %>' style="display: none;"></div>
+    <div id="dataContainer" data-row-data='<%= JSON.stringify(propositions).replace(/[<>]/g, match => {const map = {  '<': '&lt;',  '>': '&gt;'}}); %>' style="display: none;"></div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.noStyle.js"></script>
   <script src="/localization/fr-FR.js"></script>
-  <style>
-    .current-proposition-row {
-      background-color: #f0f8ff;
-      font-weight: bold;
-      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
-      border-left: 4px solid #004d99;
-      transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .current-proposition-row:hover {
-      background-color: #e6f3ff;
-      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.2);
-    }
-  </style>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       <% if (session.started && !session.ended && session.type == 'jury') { %>;
@@ -200,6 +189,7 @@
       <% } %>;
 
       <% if (session.started && !session.ended) { %>;
+
       function updateGrades() {
         fetch('/voting-sessions/current-session/grades')
           .then(response => response.json())

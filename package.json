@@ -15,6 +15,7 @@
     "chance": "^1.1.12",
     "connect-flash": "^0.1.1",
     "ejs": "^3.1.10",
+    "exceljs": "^4.4.0",
     "express": "^4.19.2",
     "express-mysql-session": "^3.0.3",
     "express-session": "^1.18.0",
@@ -22,6 +23,7 @@
     "mysql2": "^3.11.0",
     "path": "^0.12.7",
     "sharp": "^0.33.5",
-    "uid2": "^1.0.0"
+    "uid2": "^1.0.0",
+    "xlsx": "^0.18.5"
   }
 }

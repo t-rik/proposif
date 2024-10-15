@@ -93,13 +93,14 @@
                 submitButton.remove();
                 if (!isAlreadyDisabled) {
                   voteInputs.forEach(input => input.disabled = true);
-
+                  console.log();
+                  
                   Swal.fire({
-                    icon: data.is_validated ? 'success' : 'warning',
+                    icon: data.average_grade >= 3 ? 'success' : 'warning',
                     title: 'Vote Terminé',
                     html: `
                   <h3>Note moyenne: <strong>${data.average_grade.toFixed(2)}</strong></h3>
-                  <h3>Statut: <strong>${data.is_validated ? 'Retenu' : 'Non Retenu'}</strong></h3>
+                  <h3>Statut: <strong>${data.average_grade >= 3 ? 'Retenu' : 'Non Retenu'}</strong></h3>
                   `,
                     confirmButtonText: 'OK'
                   });

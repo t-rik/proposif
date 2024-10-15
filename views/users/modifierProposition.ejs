@@ -43,11 +43,11 @@
         <input type="radio" name="statut" value="en cours" <%= proposition.statut === 'en cours' ? 'checked' : '' %>>
         <span>En Cours</span>
       </label>
+      <% if(isAdmin) { %>
       <label>
         <input type="radio" name="statut" value="soldee" <%= proposition.statut === 'soldee' ? 'checked' : '' %>>
         <span>Soldée</span>
       </label>
-      <% if(isAdmin) { %>
       <label>
         <input type="radio" name="statut" value="annulee" <%= proposition.statut === 'annulee' ? 'checked' : '' %>>
         <span>Annulée</span>

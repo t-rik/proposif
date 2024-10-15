@@ -239,8 +239,7 @@ router.get('/proposition-status/:id', async (req, res) => {
             voting_completed: propositionStatus[0].voting_completed,
             is_current: propositionStatus[0].is_current,
             is_last: propositionStatus[0].is_last,
-            average_grade: propositionStatus[0].average_grade,
-            is_validated: propositionStatus[0].is_validated
+            average_grade: propositionStatus[0].average_grade
         });
     } catch (error) {
         console.error(`Erreur lors de la récupération de l'état de la proposition : ${error.message}`);
@@ -318,7 +317,6 @@ router.get('/current-proposition', async (req, res) => {
                 return res.status(404).json({ message: 'Aucune proposition en cours de vote et aucune session de vote précédente trouvée.' });
             }
 
-            // Return the ID of the last ended voting session
             return res.redirect(`/voting-sessions/${lastEndedSession[0].id}`)
         }
 
@@ -340,12 +338,8 @@ router.get('/current-proposition', async (req, res) => {
     }
 });
 
-
-
-//complete the vote on a proposition
 router.post('/set-voted', async (req, res) => {
     try {
-        // Étape 1 : Obtenir l'ID de la proposition à mettre à jour
         const [result] = await db.query(`
             SELECT MIN(proposition_id) AS proposition_id
             FROM proposition_status ps
@@ -360,7 +354,6 @@ router.post('/set-voted', async (req, res) => {
 
         const propositionId = result[0].proposition_id;
 
-        // Étape 2 : Mettre à jour la proposition pour marquer le vote comme terminé
         await db.query(`
             UPDATE proposition_status
             SET is_voted = 1
@@ -374,10 +367,8 @@ router.post('/set-voted', async (req, res) => {
     }
 });
 
-//move to next proposition
 router.post('/next', async (req, res) => {
     try {
-        // Étape 1 : Obtenir l'ID de la proposition à mettre à jour
         const [result] = await db.query(`
             SELECT MIN(proposition_id) AS proposition_id
             FROM proposition_status ps
@@ -392,7 +383,6 @@ router.post('/next', async (req, res) => {
 
         const propositionId = result[0].proposition_id;
 
-        // Étape 2 : Mettre à jour la proposition pour marquer le vote comme terminé
         await db.query(`
             UPDATE proposition_status
             SET voting_completed = 1
@@ -406,8 +396,6 @@ router.post('/next', async (req, res) => {
     }
 });
 
-
-//ajouter ou modifier vote
 router.post('/proposition/:id/vote', upload.none(), async (req, res) => {
     const propositionId = req.params.id;
     const { grade } = req.body;
@@ -416,7 +404,6 @@ router.post('/proposition/:id/vote', upload.none(), async (req, res) => {
     try {
         const isJury = req.session.isJury;
 
-        // Vérification de la session de vote active
         const [activeSession] = await db.query(`
             SELECT id, type FROM voting_sessions WHERE is_active = 1 AND started = 1 AND ended = 0
         `);
@@ -428,19 +415,16 @@ router.post('/proposition/:id/vote', upload.none(), async (req, res) => {
         const activeSessionId = activeSession[0].id;
         const sessionType = activeSession[0].session_type;
 
-        // Vérification si l'utilisateur fait partie du jury pour une session de type "jury"
         if (sessionType === 'jury' && !isJury) {
             return res.status(403).json({ error: 'Vous n\'êtes pas autorisé à voter dans cette session.' });
         }
 
-        // Vérification si un vote existe déjà pour cette proposition et cet utilisateur
         const [existingVote] = await db.query(`
             SELECT * FROM votes
             WHERE session_id = ? AND proposition_id = ? AND user_id = ?`,
             [activeSessionId, propositionId, userId]
         );
 
-        // Mise à jour ou insertion du vote selon qu'il existe ou non
         if (existingVote.length > 0) {
             await db.query(`
                 UPDATE votes
@@ -479,7 +463,6 @@ router.get('/statut-vote', function (req, res) {
     });
 });
 
-//verifier si il y'a une session de vote actif
 router.get('/check-active-session', async (req, res) => {
     try {
         const [rows] = await db.query(`
@@ -522,7 +505,7 @@ router.get('/global-vote', async (req, res) => {
             SELECT COUNT(*) as count FROM votes 
             WHERE user_id = ? AND session_id = ?
         `, [userId, session[0].id]);
-        
+
         if (userVote[0].count > 0) {
             return res.status(403).json({ error: 'Vous avez déjà voté dans cette session' });
         }
@@ -571,7 +554,7 @@ router.post('/global-vote/submit', async (req, res) => {
             SELECT id, type FROM voting_sessions WHERE is_active = 1 AND started = 1 AND ended = 0
         `);
 
-        if (!session[0 ] || session[0].type !== 'user') {
+        if (!session[0] || session[0].type !== 'user') {
             return res.status(400).json({ error: 'Aucune session de vote utilisateur en cours' });
         }
 
@@ -580,9 +563,7 @@ router.post('/global-vote/submit', async (req, res) => {
             WHERE user_id = ? AND session_id = ?
         `, [userId, session[0].id]);
 
-
         if (userVote[0].count > 0) {
-            console.log('already voted');
             return res.status(403).json({ error: 'Vous avez déjà voté dans cette session' });
         }
         const connection = await db.getConnection();
@@ -594,7 +575,7 @@ router.post('/global-vote/submit', async (req, res) => {
                 connection.query(`
                 INSERT INTO votes (session_id, proposition_id, user_id, vote_value)
                 VALUES (?, ?, ?, ?)
-            `, [session[0].id, vote.propositionId, userId, vote.value])
+            `, [session[0].id, vote.propositionId, userId, vote.value ? vote.value : 0])
             );
             await Promise.all(await votePromises);
             await connection.commit();
@@ -614,6 +595,80 @@ router.post('/global-vote/submit', async (req, res) => {
     }
 });
 
+router.get('/:id/resultats-votes-global', async (req, res) => {
+    try {
+        const sessionId = req.params.id;
+
+        const [session] = await db.query('SELECT * FROM voting_sessions WHERE id = ?', [sessionId]);
+
+        if (session.length === 0) {
+            return res.status(404).json({ error: 'Session non trouvée' });
+        }
+        if (!session[0].ended && !req.session.isAdmin) {
+            return res.redirect('/propositions/mes-propositions');
+        }
+
+        const [propositionsStatus] = await db.query(`
+            SELECT 
+                ps.proposition_id, 
+                ps.is_validated, 
+                ps.average_grade, 
+                p.id, 
+                p.date_emission,
+                CONCAT(u.first_name, ' ', u.last_name) AS full_name,
+                p.objet,
+                p.description_situation_actuelle,
+                p.description_amelioration_proposee,
+                p.impact_economique, 
+                p.impact_technique, 
+                p.impact_formation, 
+                p.impact_fonctionnement 
+            FROM proposition_status ps
+            JOIN propositions p ON ps.proposition_id = p.id
+            JOIN users u ON p.user_id = u.id
+            WHERE ps.voting_session_id = ?
+        `, [sessionId]);
+
+        if (propositionsStatus.length === 0) {
+            return res.status(404).json({ message: 'Aucune proposition trouvée pour cette session' });
+        }
+
+        // Sort propositions into categories based on impacts
+        const economicImpactPropositions = propositionsStatus
+            .filter(prop => prop.impact_economique)
+            .sort((a, b) => b.average_grade - a.average_grade);
+        const technicalImpactPropositions = propositionsStatus
+            .filter(prop => prop.impact_technique)
+            .sort((a, b) => b.average_grade - a.average_grade);
+        const trainingImpactPropositions = propositionsStatus
+            .filter(prop => prop.impact_formation)
+            .sort((a, b) => b.average_grade - a.average_grade);
+        const operationalImpactPropositions = propositionsStatus
+            .filter(prop => prop.impact_fonctionnement)
+            .sort((a, b) => b.average_grade - a.average_grade);
+
+        res.render('layouts/main', {
+            userId: req.session.userId,
+            isAdmin: req.session.isAdmin,
+            isJury: req.session.isJury,
+            session: session[0],
+            sessionId,
+            economicImpactPropositions,
+            technicalImpactPropositions,
+            trainingImpactPropositions,
+            operationalImpactPropositions,
+            title: 'Details session',
+            view: '../voting-sessions/global-vote-results',
+            css: ['global-vote-results.css'],
+            js: []
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Erreur de base de données', details: error });
+    }
+});
+
+
+
 router.get('/:id', async (req, res) => {
     try {
         const sessionId = req.params.id;
@@ -630,15 +685,15 @@ router.get('/:id', async (req, res) => {
         const [propositionsStatus] = await db.query(`
             SELECT 
                 ps.proposition_id, 
-                ps.is_validated, 
-                ps.average_grade, 
-                p.id, 
+                ps.is_validated,
+                ps.average_grade,
+                p.id,
                 p.date_emission,
-                CONCAT(u.first_name, ' ', u.last_name) AS full_name,
-                p.objet,
+                CONCAT(u.first_name, ' ', COALESCE(u.last_name, '')) AS full_name,
+                COALESCE(p.objet, description_situation_actuelle) as objet,
                 p.description_situation_actuelle,
                 p.description_amelioration_proposee,
-                p.is_excluded  
+                p.is_excluded
             FROM proposition_status ps
             JOIN propositions p ON ps.proposition_id = p.id
             JOIN users u ON p.user_id = u.id
@@ -665,6 +720,5 @@ router.get('/:id', async (req, res) => {
         res.status(500).json({ error: 'Erreur de base de données', details: error });
     }
 });
-
 
 module.exports = router;
