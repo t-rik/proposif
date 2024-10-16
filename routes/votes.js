@@ -2,12 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const upload = require('../config/uploadConfig');
-const checkUserOwnership = require('../middleware/checkUserOwnership');
-const path = require('path');
-const fs = require('fs');
-const multer = require('multer');
 const { render } = require('ejs');
-const { AsyncLocalStorage } = require('async_hooks');
 
 
 router.post('/init', async (req, res) => {
@@ -171,7 +166,7 @@ router.get('/', async (req, res) => {
         title: 'SESSIONS',
         view: '../voting-sessions/list',
         css: ['tables.css'],
-        js: []
+        js: ['ag-grid.js', 'sweet-alert.js']
     });
 });
 
@@ -329,7 +324,7 @@ router.get('/current-proposition', async (req, res) => {
             proposition: proposition[0],
             userVote: proposition[0].user_vote,
             css: ['detailProposition.css'],
-            js: ['detailProposition.js'],
+            js: ['detailProposition.js', 'sweet-alert.js'],
             view: '../jury/proposition'
         });
     } catch (error) {
@@ -534,7 +529,7 @@ router.get('/global-vote', async (req, res) => {
             title: 'Vote Global',
             view: '../voting-sessions/global-vote.ejs',
             css: ['detailProposition.css'],
-            js: ['global-vote.js'],
+            js: ['global-vote.js', 'sweet-alert.js'],
         });
 
 
@@ -660,7 +655,7 @@ router.get('/:id/resultats-votes-global', async (req, res) => {
             title: 'Details session',
             view: '../voting-sessions/global-vote-results',
             css: ['global-vote-results.css'],
-            js: []
+            js: ['sweet-alert.js']
         });
     } catch (error) {
         res.status(500).json({ error: 'Erreur de base de données', details: error });
@@ -714,7 +709,7 @@ router.get('/:id', async (req, res) => {
             title: 'Details session',
             view: '../voting-sessions/details',
             css: ['tables.css'],
-            js: []
+            js: ['sweet-alert.js', 'ag-grid.js']
         });
     } catch (error) {
         res.status(500).json({ error: 'Erreur de base de données', details: error });

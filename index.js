@@ -5,9 +5,11 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const MySQLStore = require('express-mysql-session')(session);
 const db = require('./config/db');
-const XLSX = require('xlsx');
-const ExcelJS = require('exceljs');
-const fs = require('fs');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const compression = require('compression');
+const morgan = require('morgan');
+const logger = require('./config/winston.js');
 
 
 const app = express();
@@ -21,6 +23,9 @@ const dbOptions = {
   expiration: 3 * 60 * 60 * 1000
 };
 const sessionStore = new MySQLStore(dbOptions);
+
+app.disable('x-powered-by');
+
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -41,6 +46,18 @@ function simulateLatency(req, res, next) {
 
 // app.use(simulateLatency);
 // app.use(noCache);
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something went wrong!');
+});
+const limiter = rateLimit({ windowMs: 3 * 60 * 1000, max: 100 });
+app.use(morgan('combined', { stream: logger.stream }));
+app.use((err, req, res, next) => {
+  logger.error(err.stack);
+  res.status(500).send('Something went wrong!');
+});
+app.use(limiter);
+// app.use(helmet());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(session({

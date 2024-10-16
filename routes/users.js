@@ -5,6 +5,9 @@ const db = require('../config/db');
 const session = require('express-session');
 
 router.get('/add', async (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.redirect(`/propositions/mes-propositions`);
+  }
   try {
     const [functions] = await db.query('SELECT * FROM functions');
     res.render('layouts/main', {
@@ -25,7 +28,9 @@ router.get('/add', async (req, res) => {
 });
 
 router.post('/add', async (req, res) => {
-
+  if (!req.session.isAdmin) {
+    return res.redirect(`/propositions/mes-propositions`);
+  }
   const { username, password, first_name, last_name, function_id, is_admin, is_jury } = req.body;
   try {
     const [results] = await db.query('SELECT * FROM users WHERE username = ?', [username]);
@@ -51,6 +56,9 @@ router.post('/add', async (req, res) => {
 });
 
 router.get('/', async (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.redirect(`/propositions/mes-propositions`);
+  }
   try {
     const [users] = await db.query(`
       SELECT u.id, u.username, u.first_name, u.last_name, f.name AS function_name, u.is_admin, u.is_jury
@@ -75,6 +83,9 @@ router.get('/', async (req, res) => {
 });
 
 router.get('/edit/:id', async (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.redirect(`/propositions/mes-propositions`);
+  }
   const userId = parseInt(req.params.id, 10);
   if (isNaN(userId)) {
     return res.status(400).json({ error: 'Invalid user ID' });
@@ -112,6 +123,9 @@ router.get('/edit/:id', async (req, res) => {
 
 
 router.post('/edit/:id', async (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.redirect(`/propositions/mes-propositions`);
+  }
   const userId = parseInt(req.params.id, 10);
   const { username, password, first_name, last_name, function_id, is_admin, is_jury } = req.body;
 
@@ -158,6 +172,9 @@ router.post('/edit/:id', async (req, res) => {
 });
 
 router.post('/delete/:id', async (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.redirect(`/propositions/mes-propositions`);
+  }
   const userId = req.params.id;
   try {
     await db.query('DELETE FROM users WHERE id = ?', [userId]);

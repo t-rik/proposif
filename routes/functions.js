@@ -26,7 +26,6 @@ router.get('/', async (req, res) => {
 
 
 router.put('/edit/:id', async (req, res) => {
-  console.log('edit');
   
   if (!req.session.isAdmin) {
     return res.redirect(`/propositions/mes-propositions`);
@@ -52,7 +51,6 @@ router.put('/edit/:id', async (req, res) => {
 });
 
 router.delete('/delete/:id', async (req, res) => {
-  console.log('delete');
   
   if (!req.session.isAdmin) {
     return res.redirect(`/propositions/mes-propositions`);
